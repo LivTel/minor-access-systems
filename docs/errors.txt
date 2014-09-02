@@ -1,0 +1,50 @@
+
+------------------------------
+ OSS Proxy server error codes.
+------------------------------
+
+ERROR_BASE = 710800
+
+Most of these indicate some form of communications or
+server configuration problem and hence usually the best
+strategy is to try again later.
+
+Indicates that the OSS Server would not accept connections.
+710801 REMOTE_CONNECTION_REFUSED
+
+Indicates that the OSS Server cannot be reached (config or DNS problem).
+710802 REMOTE_HOST_UNREACHABLE ;
+    
+Indicates a DNS or config problem typically.
+710803 REMOTE_HOST_UNKNOWN
+    
+Indicates a problem opening a TCP socket connection to the OSS .
+710804 REMOTE_SOCKET_ERROR
+
+Indicates a general TCP problem.
+710805 REMOTE_IO_ERROR
+    
+Indicates some very bad i/o problem.
+710806 REMOTE_SOCKET_NO_SOCKET
+    
+Indicates a problem opening the output stream to the OSS.
+710807 REMOTE_SOCKET_OSTREAM_ERROR
+    
+Indicates a serialization version problem.
+710808 REMOTE_SOCKET_ISTREAM_SERIALIZATION_ERROR
+    
+Indicates a problem opening the input stream from the OSS.
+710809 REMOTE_SOCKET_ISTREAM_ERROR
+    
+Indicates that the request from the client was not read.
+710810 NO_READ_COMMAND
+    
+Indicates that the request could not be forwarded.
+710820 NO_SEND_COMMAND
+
+Indicates a surprising response class from the OSS.
+710830 UNEXPECTED_RESPONSE_CLASS
+    
+Indicates no valid response class was forthcoming from the OSS.
+710840 NO_READ_RESPONSE
+    

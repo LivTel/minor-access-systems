@@ -1,0 +1,173 @@
+#!/bin/csh
+
+# --------------------------------------
+# Archive transfer script.
+# --------------------------------------
+#
+# Usage: archive_xfer [ test | send ]  <dir>
+#
+# e.g.   archive_xfer send /mydata     -- Send everything from /mydata
+#
+# e.g.   archive_xfer test /otherdata  -- Check for sendable files in /otherdata
+#
+# --------------------------------------
+#
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/archive_xfer_setup
+
+echo "SSL Archive Transfer Client Starting"
+
+set nargs = ${#argv}
+
+if ($nargs > 2) then
+    echo "Usage: archive_xfer [ test | send ] <directory>"
+    exit 1
+endif
+
+set mode = $1
+  
+if ($mode == "test") then
+    set test
+endif
+
+set ARCHIVE_IMAGE_DIR = $2
+
+set dd = `date -u "+%Y%m%d"`
+    
+set LOGFILE = $DEPLOY_LOG/archive_log_${dd}
+set INFO    = $DEPLOY_TMP/archive_info
+
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+endif
+
+if (! -e $INFO) then
+    touch $INFO
+endif
+
+echo "Starting Archive Transfer at: $dd " >>& $LOGFILE
+
+cd $ARCHIVE_HOME
+
+# Where are the extra files.
+set ARCHIVE_EXTRA_LIST
+
+# These should work.
+set KEYSTORE     = "certs/pca.private"
+set TRUSTSTORE   = "certs/itr.public"
+set KEYPASS      = geronimo
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE" >>& $LOGFILE
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE" >>& $LOGFILE
+    exit 2
+endif
+
+# Check the certificate validity dates.
+$ARCHIVE_HOME/scripts/check_cert $KEYSTORE $KEYPASS >>& $LOGFILE
+$ARCHIVE_HOME/scripts/check_cert $TRUSTSTORE public >>& $LOGFILE
+
+# Just an ID for this server - you can run several of these as required.
+set ID = ARCHIVE_XFER
+
+# The Proxy relay.
+set RELAY_HOST = 192.168.4.1
+set RELAY_PORT = 6666
+
+# The archive.
+set ARCHIVE_HOST = kilo.ifa.hawaii.edu
+set ARCHIVE_PORT = 6666
+
+set BANDWIDTH = 5
+
+set APP = ngat.net.SSLFileTransfer
+
+# Command line delimeter - use any symbol which wont appear in either a filename
+# or the ID etc.
+set DD = @
+
+# Check number of files to xfer.
+
+if (! -e ${ARCHIVE_IMAGE_DIR}) then
+    echo "Cannot locate archive image dir: ${ARCHIVE_IMAGE_DIR}" >>& $LOGFILE
+    exit 3
+endif
+
+set cf = `ls -1 ${ARCHIVE_IMAGE_DIR}/* | wc -l`
+set sz = `ls -l ${ARCHIVE_IMAGE_DIR}/* | awk '{count += $5} END { print (count/1000000)}'`
+
+#set sz = `ls -l ${ARCHIVE_IMAGE_DIR} | awk '{count += $5} END { print (count/1000000000)}'`
+
+
+echo "There are $cf files to transfer with total size: $sz MBytes" >>& $LOGFILE
+
+# Files transferred
+set ct = 0
+# MBytes transferred
+set tt = 0
+# Files skipped
+set sk = 0
+# Failed to transfer
+set ff = 0
+
+foreach file (${ARCHIVE_IMAGE_DIR}/*)
+    
+    set fs = `ls -s --block-size=1000000 $file | cut -d" " -f1 | awk '{print int($1)}'` 
+    
+    if (${?test}) then
+
+	echo "Checking: Found: $file $fs MBytes" 
+
+    else
+	echo "Ready to Transfer: $file " >>& $LOGFILE
+ 
+	set find = `cat $INFO | grep $file `
+	
+	if ($status == 0) then
+
+	    echo "Already transferred $file - skip"  >>& $LOGFILE
+	    @ sk++
+
+	else
+
+	    set dfile = $file:t
+
+	    java -Dcpdelim=${DD} $APP ${DD}client ${DD}id $ID ${DD}key $KEYSTORE ${DD}kpass $KEYPASS ${DD}trust $TRUSTSTORE \
+	     ${DD}host $RELAY_HOST ${DD}port $RELAY_PORT ${DD}auth ${DD}band $BANDWIDTH \
+	     ${DD}fwd $file ${DD}rhost $ARCHIVE_HOST ${DD}rport $ARCHIVE_PORT  ${DD}dest $dfile 
+
+	    set ex = $status
+	  
+	    if ($ex == 0) then
+		echo "Transferred: $file $fs MBytes" >>& $LOGFILE
+		echo $file >>& $INFO
+		@ ct++
+		@ tt += $fs
+	    else
+		echo "Transfer $file failed with status: $ex " >>& $LOGFILE
+		@ ff++
+	    endif
+	endif
+
+   endif
+end
+
+if (! ${?test}) then
+    echo "" >>& $LOGFILE
+    echo "Run statistics" >>& $LOGFILE
+    echo "Total files: $cf " >>& $LOGFILE
+    echo "Files tranferred this run: $ct " >>& $LOGFILE
+    echo "Files skipped: $sk " >>& $LOGFILE
+    echo "Total transfer $tt Mbytes" >>& $LOGFILE
+    echo "Failed transfers: $ff ">>& $LOGFILE
+endif
+
+echo "Transfer run completed successfully" >>& $LOGFILE

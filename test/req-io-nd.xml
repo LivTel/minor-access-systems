@@ -1,0 +1,32 @@
+<p2ml>
+   <request>
+      <action> add-inst-config </action>
+     
+         <param name = "proposal-id">
+             <value> LT_Phase2_001/NSO/XNSO/NSO_Priority_1 </value>]
+         </param>
+	 
+	 <param name = "instrument-config">
+	    <value>         
+               <inst-config ic-id = "TEST-IO-U-Clear-ND3" type = "io:o" >
+	          <inst-common>
+		     <description>IO 2x2 binning, SDSS-U + ND3 </description>
+		     <cal-before> TRUE </cal-before>
+		     <cal-after> FALSE </cal-after>
+		     <detector>
+		       <xbin> 2 </xbin>
+		       <ybin> 2 </ybin>
+		     </detector>
+		  </inst-common>
+		  <ccd-config>
+		     <filter> SDSS-U <filter>
+		     <lower-slide> clear  </lower-slide>
+                     <upper-slide> ND3 </upper-slide>
+		  </ccd-config>
+	       </inst-config>
+            </value>
+         </param>
+
+   </request>
+</p2ml>
+

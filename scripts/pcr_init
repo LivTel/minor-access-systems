@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# ---------------------------------------------------
+# Startup script for Planetarium Control Relay (PCR).
+# ---------------------------------------------------
+
+. /occ/etc/env
+
+DAT=`date -u +"%j_%H"`
+PCR_CONSOLE_LOG_FILE=$DEPLOY_TMP/pcr_${DAT}.log
+
+if [ $# -ne 2 ]; then   
+    target=$DEPLOY_SYSTEM
+else
+    target=$2
+fi
+
+# Source function library.
+/etc/rc.d/init.d/functions
+
+case "$1" in
+  start)
+	echo "Starting Planetarium Control Relay."
+	echo "Logging to: " ${PCR_CONSOLE_LOG_FILE}
+	$DEPLOY_BIN/pcr start $target 1> ${PCR_CONSOLE_LOG_FILE} 2>&1 &
+	;;
+  stop)
+	echo "Shutting down Planetarium Control Relay."
+	$DEPLOY_BIN/pcr stop $target 1> ${PCR_CONSOLE_LOG_FILE} 2>&1 
+	;;
+  restart)
+	$0 stop
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+esac
+
+exit 0

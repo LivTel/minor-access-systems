@@ -1,0 +1,49 @@
+<p2ml>
+   <request>
+      <action> replace-group </action>
+     
+         <param name = "proposal-id">
+            <value> /FTN_Phase2_001/FTN_OPS/test-user1/SN-Test1 </value>
+         </param>
+
+         <param name = "group">
+            <value>         
+               <group  type = "monitor" group-id = "MonGroup-2" notify-when-done = "TRUE">
+                  <expiry-date> 2004-09-15T16:00 </expiry-date>
+                  <constraints lunar          = "BRIGHT"    
+                               seeing         = "POOR"
+                               twilight       = "OPTIONAL"
+                               meridian-limit = "15" />
+
+                  <!-- A Monitor Group which repeats once per day.-->     
+           
+                  <monitor>
+                     <datum-start> 2004-08-10T11:00 </datum-start>
+                     <datum-end>   2005-05-02T16:03 </datum-end> 
+                     <period>      160000            </period>
+                     <float>       0.8             </float>
+                  </monitor>
+                 
+                  <observation obs-id = "Obs-1" 
+                               src-id = "Some_Star"
+                               ic-id  = "OCR-U-2" 
+                               tc-id   = "Foff+15-RotMnt90-agopt">
+
+                     <exposure expose-time = "60006" conditional = "TRUE" repeats = "4" />
+
+                     <mosaic pattern = "SINGLE" scale = "TRUE" >                       
+                     </mosaic>
+
+                     <offset>
+                        <offset-ra>  1.05  </offset-ra>
+                        <offset-dec> -0.32 </offset-dec>
+                     </offset>
+
+                  </observation>
+
+               </group>
+            </value>
+         </param>
+
+   </request>
+</p2ml>

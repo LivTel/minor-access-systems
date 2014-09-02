@@ -1,0 +1,24 @@
+#!/bin/csh
+
+# ----------------------------------
+# Offline Control Relay (OCR) setup.  
+# ----------------------------------
+
+setenv OCR_HOME ${DEPLOY_HOME}/ocr
+setenv OCR_SCRIPT ${OCR_HOME}/scripts
+setenv OCR_DOCS   ${OCR_HOME}/docs
+setenv OCR_CLASS  ${OCR_HOME}/class
+setenv OCR_CONFIG ${OCR_HOME}/config
+
+# Add the xml parsing libraries.
+echo $CLASSPATH | grep ${NGAT_HOME}/xerces.jar > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH :${NGAT_HOME}/xerces.jar
+endif
+
+# Add classes for OCR
+echo $CLASSPATH | grep ${OCR_CLASS} > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${OCR_CLASS}
+endif
+

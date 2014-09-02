@@ -1,0 +1,236 @@
+<p2ml version = "2.0">
+
+<!-- add a group to proposal NSO_Priority_5 -->
+
+  <add-group proposal = "NSO_Priority_5">
+
+    <group name = "frodo-test-X001" urgent = "false">
+
+       <constraints>      
+
+	  <airmass max = "2.0" />
+
+	  <seeing class = "AVERAGE" />
+
+	  <extinction class = "PHOTOMETRIC" />
+
+	  <hour-angle min = "-60" max = "60.0" unit = "deg" />	  
+
+	  <sky-brightness class = "4_MAG"/>
+
+       </constraints>
+   
+	<!-- MONITOR -->
+       <timing class = "monitor">
+         <period unit = "hour"> 3.0 </period>
+	 <window unit = "hour"> 1.5 </window>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <!-- INTERVAL -->
+       <timing class = "interval">
+         <interval unit = "hour"> 3.0 </period>
+	 <max-repeats> 10 </max-repeats>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <!-- EPHEMERIS -->
+       <timing class = "ephemeris">
+         <period unit = "hour"> 130.0 </period>
+	 <window unit = "hour"> 1.5 </window>
+	 <phase> 0.4 </phase>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <!-- FLEXIBLE -->
+       <timing class = "flexible">     
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <!-- FIXED -->
+       <timing class = "fixed">     
+	 <at> 2010-07-21T15:00:00 </at>
+	 <window unit = "min"> 15 </window>
+       </timing>
+
+       <sequence>
+
+         <iterator name = "root">
+
+	     <slew>
+		<target> M87 </target>
+		<!-- Select cardinal rotator based on RATCam's focal plane -->
+		<rotator mode = "cardinal" focal-plane = "RATCam" />			
+	     </slew>
+
+	     <!-- Actually select RATCam's focal plane -->
+	     <focal-plane name = "RATCam" />
+
+	     <!-- focus offset from nominal -->
+	     <defocus offset = "1500" unit = "microns" mode = "absolute" />
+
+	     <autoguide mode = "ON" />
+
+	     <configure config = "RATCam:V" />
+	  
+             <multrun repeat = "6" unit = "Ms" exposure = "4000" />
+             
+	     <configure config = "RATCam:B" />
+
+             <multrun repeat = "6" unit = "secs" exposure = "400" />
+             
+	     <autoguide mode = "OFF"/>
+
+	     <!-- Position offset from target nominal position -->
+	     <offset ra-offset = "60" dec-offset = "-30" unit = "arcsec" mode = "absolute" />
+
+	     <acquire use = "RATCam" target = "FRODO" mode = "WCS_FIT" />
+
+	     <!-- A strange but neccessary step in the frodo acquisition to set the focus offset correctly before autoguiding -->
+
+             <configure config = "Red-HighRes" />
+
+	     <autoguide mode = "ON" />
+
+	     <branch name = "frodo-seq-1">	      
+	     
+		<red>
+		   <iterator name = "red" type = "single">
+
+		      <configure config = "Red-HighRes" />
+		                       
+                      <multrun repeat = "6" unit = "min" exposure = "40" />
+                      
+		      <configure config = "Red-LowRes" />
+	
+                      <multrun repeat = "6" unit = "sec" exposure = "30" />
+            
+		   </iterator>
+		</red>
+
+		<blue>
+		   <iterator name = "blue" type = "single">		   
+
+		      <configure config = "Blue-HighRes" />
+		      
+                      <arc source = "W" />
+		      
+                      <multrun repeat = "6" unit = "min" exposure = "4" />
+                      
+		      <configure config = "Blue-LowRes" />
+		      
+                      <multrun repeat = "6" unit = "milli" exposure = "400" />
+                      		      
+                      <lamp source = "Xe" />
+
+		   </iterator>
+		</blue>
+
+	     </branch>
+
+	     <autoguide mode = "OFF" />
+
+	  </iterator>
+
+       </sequence>
+
+    </group>
+
+  </add-group>
+
+</p2ml>
+
+
+Timing: Must contain a <timing> section.
+
+Constraints:
+
+Must contain a <constraints> section. Any constraints supplied are added, no others are inferred. May be no constraints in section.
+
+airmass 
+ max: 
+	1.0 <= max <= 5.0
+
+seeing 
+ class: 
+	GOOD
+	AVERAGE
+	POOR
+	USABLE
+
+extinction 
+ class: 
+	PHOTOMETRIC
+	SPECTROSCOPIC
+
+sky-brightness
+  class:
+	DAYTIME
+	10_MAG
+	6_MAG
+	4_MAG
+	2_MAG
+	1.5_MAG
+	0.75_MAG
+	DARK
+       
+
+hour-angle
+ min: 
+	-180.0 < min <= 180.0
+ max:
+	-180.0 < max <= 180.0
+
+
+Sequence:
+
+Must contain a sequence section. The order of components IS important. Currently this is not checked other than for existance of targets and configs. For FRODO there is a specific setup required in order to acquire correctly. 
+	   
+
+Units for angles:
+
+      as, asec, asecs, arcsec, arcsecs,
+      d, deg, degs,
+      r, rad, rads,
+      h, hour, hours
+
+Units for time periods:
+      
+      ms, milli, millis, msec, msecs, millisec, millisecs,
+      s, sec, secs,
+      m, min, mins,
+      h, hour, hours,
+      d, day, days
+      
+Units for distance: (defocus)
+
+      mm, mu, micron, microns
+
+Valid instrument names (note: case sensitive):
+
+      RATCam 
+      RISE
+      IO:O
+      RINGO2
+      FRODO       (used as acquisition target instrument in preference to red or blue arm)
+      FRODO_RED   (when configuring red arm)
+      FRODO_BLUE  (when configuring blue arm)
+      IO:THOR (TBC)
+
+Valid lamp names: (note: case sensitive):
+
+ For Arcs:
+
+      Xe
+      Ne
+
+ For lamp flats:
+
+      W
+
+
+

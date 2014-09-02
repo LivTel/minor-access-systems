@@ -1,0 +1,66 @@
+<p2ml>
+   <request>
+      <action> add-group </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/NSO/NSO_Priority_1 </value>
+         </param>
+
+         <param name = "group">
+            <value>         
+               <group  type = "monitor" group-id = "MonGroup-1" notify-when-done = "TRUE">
+                  <expiry-date> 2009-11-15T22:00 </expiry-date>
+                  <constraints lunar          = "BRIGHT"    
+                               seeing         = "POOR"
+                               twilight       = "OPTIONAL"
+                               meridian-limit = "15" />
+
+                  <!-- A Monitor Group which repeats once per day.-->     
+           
+                  <monitor>
+                     <datum-start> 2009-09-19T18:43 </datum-start>
+                     <datum-end>   2009-11-10T17:02 </datum-end> 
+                     <period>      86400            </period>
+                     <float>       0.15             </float>
+                  </monitor>
+                 
+                  <observation obs-id = "Obs-1" 
+                               src-id = "MARS:1"
+                               ic-id  = "MYOCR-B-1" 
+                               tc-id   = "Foff+15-RotMnt90-agopt">
+
+                     <exposure expose-time = "60006" conditional = "TRUE" repeats = "4" />
+
+                     <mosaic pattern = "SINGLE" scale = "TRUE" >                       
+                     </mosaic>
+
+                     <offset>
+                        <offset-ra>  1.05  </offset-ra>
+                        <offset-dec> -0.32 </offset-dec>
+                     </offset>
+
+                  </observation>
+
+                  <observation obs-id = "Obs-2"
+                               src-id = "TestAsteroid-001"
+                               ic-id  = "MYOCR-U-2"
+                               tc-id   = "Foff+15-RotMnt90-agopt">
+
+                     <exposure expose-time = "60006" conditional = "TRUE" repeats = "4" />
+
+                     <mosaic pattern = "SINGLE" scale = "TRUE" >
+                     </mosaic>
+
+                     <offset>
+                        <offset-ra>  1.05  </offset-ra>
+                        <offset-dec> -0.32 </offset-dec>
+                     </offset>
+
+                  </observation>
+
+               </group>
+            </value>
+         </param>
+
+   </request>
+</p2ml>

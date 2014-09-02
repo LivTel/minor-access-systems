@@ -1,0 +1,23 @@
+<p2ml>
+   <request>
+      <action> add-source </action>
+     
+         <param name = "proposal-id">
+            <value> /FTN_Phase2_001/FTN_OPS/test-user1/SN-Test1 </value>
+         </param>
+	 
+	 <param name = "source">
+	    <value>         
+               <source src-id = "MARS:2">
+	          <src-common>
+		     <equinox> J2000.0 </equinox> 
+		     <epoch>   2000.0  </epoch>
+		     <frame>   FK5     </frame>
+		  </src-common>
+		  <catalog cat-id = "MARS"/>		    
+	       </source>
+            </value>
+         </param>
+   </request>
+</p2ml>
+

@@ -1,0 +1,14 @@
+#!/bin/csh
+
+# -----------------------------
+# Launcher setup for: CIL : LT
+# -----------------------------
+
+setenv NAME TCSCilService 
+setenv SVC_PORT 16001
+setenv SEND_PORT 13022
+setenv CIL_HOST tcc
+setenv CIL_PORT 13021
+setenv SVC_CLASS 589824
+setenv TX_ID 18
+setenv RX_ID 17

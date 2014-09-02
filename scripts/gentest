@@ -1,0 +1,114 @@
+#!/bin/csh
+
+# -------------------------------------------------------------------
+# Test Setup for 2 Telescopes (with DMZ Proxy) and 3 WWWIS/Archives.
+# -------------------------------------------------------------------
+
+if (${#argv} < 1) then
+    echo "Usage: gentest <dir> "
+    echo "Where <dir> is the directory to place the keys into."
+    exit 1
+endif
+
+setenv DIR $1
+
+setenv PATH ${PATH}:.
+
+
+#-------------------------------------------------------
+# Generate PCA(scope) server public/private key pairs.
+#-------------------------------------------------------
+echo "Generating PCA(scope) server public private key pairs"
+
+gencert "PCA FTN" pcaftnprivate pca_ftn.private \
+    "CN=FTN, OU=FTN_OCC, O=Faulkes, L=Haleakala, S=Maui, C=USA"           pcaftnpw
+
+gencert "PCA FTS" pcaftsprivate pca_fts.private \
+    "CN=FTS, OU=FTS_OCC, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" pcaftspw
+
+#-------------------------------------------------------
+# Generate itr server public/private key pairs.
+#-------------------------------------------------------
+echo "Generating POS Image Transfer Relay server public private key pairs"
+
+gencert "ITR FTN" itrftnprivate itr_ftn.private \
+    "CN=FTN, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Uh"            itrftnpw
+
+gencert "ITR FTS" itrftsprivate itr_fts.private \
+    "CN=FTS, OU=FTS_PROXY, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" itrftspw
+
+
+#-------------------------------------------------------
+# Generate WWWIS/Archive public/private key pairs.
+#-------------------------------------------------------
+echo "Generating WWWIS/Archive public/private key pairs."
+
+gencert "ARI ARCH"  ariarchiveprivate ari_archive.private \
+	"CN=ARI, OU=RTOC, O=ARI_ARCH, L=Liverpool, S=merseyside, C=UK"  ariarchivepw
+
+gencert "UH ARCH"   uharchiveprivate  uh_archive.private \
+	"CN=UOH, OU=RTOC, O=UH_ARCH, L=Haleakala, S=Maui, C=USA"        uharchivepw
+
+gencert "UK WWWIS"  ukwwwisprivate    uk_wwwis.private \
+	"CN=UCW, OU=RTOC, O=UK_WWWIS, L=Cardiff, S=Wales, C=UK"          ukwwwispw
+
+#-----------------------------------------------------------------------
+# Export ITR client public keys and import into WWWIS public keystore.
+#-----------------------------------------------------------------------
+echo "Generating WWWIS/Archive public key files"
+
+excert "ITR FTN"         itrftnprivate itr_ftn.private     itrftnpw temp.key
+incert "UK WWWIS PUBLIC" itrftnpublic  uk_wwwis.public     public temp.key
+incert "ARI ARCH PUBLIC" itrftnpublic  ari_archive.public  public temp.key
+incert "UH ARCH PUBLIC"  itrftnpublic  uh_archive.public   public temp.key
+
+
+excert "ITR FTS"         itrftsprivate itr_fts.private     itrftspw temp.key
+incert "UK WWWIS PUBLIC" itrftspublic  uk_wwwis.public     public temp.key
+incert "ARI ARCH PUBLIC" itrftspublic  ari_archive.public  public temp.key
+incert "UH ARCH PUBLIC"  itrftspublic  uh_archive.public   public temp.key
+
+#--------------------------------------------------------------------------
+# Export PCA and Archive public keys and import into relay public keystore.
+#--------------------------------------------------------------------------
+
+excert "PCA FTN"            pcaftnprivate     pca_ftn.private     pcaftnpw      temp.key
+incert "FTN OGRELAY PUBLIC" pcaftnpublic      relay_ftn.public    public        temp.key
+
+excert "UK WWWIS"           ukwwwisprivate    uk_wwwis.private    ukwwwispw     temp.key
+incert "FTN OGRELAY PUBLIC" ukwwwispublic     relay_ftn.public    public        temp.key
+
+excert "ARI ARCH"           ariarchiveprivate ari_archive.private ariarchivepw  temp.key
+incert "FTN OGRELAY PUBLIC" ariarchivepublic  relay_ftn.public    public        temp.key
+
+excert "UH ARCH"            uharchiveprivate  uh_archive.private  uharchivepw   temp.key
+incert "FTN OGRELAY PUBLIC" uharchivepublic   relay_ftn.public    public        temp.key
+
+
+excert "PCA FTS"            pcaftsprivate     pca_fts.private     pcaftspw      temp.key
+incert "FTS OGRELAY PUBLIC" pcaftspublic      relay_fts.public    public        temp.key
+
+excert "UK WWWIS"           ukwwwisprivate    uk_wwwis.private    ukwwwispw     temp.key
+incert "FTS OGRELAY PUBLIC" ukwwwispublic     relay_fts.public    public        temp.key
+
+excert "ARI ARCH"           ariarchiveprivate ari_archive.private ariarchivepw  temp.key
+incert "FTS OGRELAY PUBLIC" ariarchivepublic  relay_fts.public    public        temp.key
+
+excert "UH ARCH"            uharchiveprivate  uh_archive.private  uharchivepw   temp.key
+incert "FTS OGRELAY PUBLIC" uharchivepublic   relay_fts.public    public        temp.key
+
+#-----------------------------------------------------------------------
+# Export ITR client public keys and import into PCA public keystore.
+#-----------------------------------------------------------------------
+echo "Generating PCA public key files"
+
+excert "ITR FTN"            itrftnprivate itr_ftn.private itrftnpw temp.key
+incert "FTN ICRELAY PUBLIC" itrftnpublic  itr_ftn.public  public   temp.key
+
+
+excert "ITR FTN"            itrftsprivate itr_fts.private itrftspw temp.key
+incert "FTN ICRELAY PUBLIC" itrftspublic  itr_fts.public  public   temp.key
+
+
+
+

@@ -1,0 +1,185 @@
+#!/bin/csh
+
+echo
+echo "----------------------------------------------------------------"
+echo "Planetarium Operating System (POS) Relay Server - Configuration:"
+echo "----------------------------------------------------------------"
+echo
+
+if ($#argv < 1) then
+    echo "Usage: configure <config_file> " 
+    exit 1
+endif 
+
+set cdir = `pwd`
+set config = $1
+#
+# Check if config file exists.
+#
+if (-e $config) then
+    printf "%bConfig file exists - overwrite (Y/N) ? "
+    set a = "$<"
+    if ($a == "Y") then
+	rm $config
+    else
+	exit 0
+    endif
+endif
+
+touch $config
+
+echo >> $config
+echo "----------------------------------------------------------------" >> $config
+echo "Planetarium Operating System (POS) Relay Server - Configuration:" >> $config
+echo "----------------------------------------------------------------" >> $config
+echo >> $config
+
+# ID of this server instantiation.
+
+printf "%bPlease enter the Server Instantiation ID : "
+set id = "$<"
+
+printf "%b\n# ID of this server instantiation.\n" >> $config
+echo "id = $id" >> $config
+
+# Port to bind server to.
+
+printf "%bPort to bind to (incoming requests) : "
+set port = "$<"
+if ($port == "") set port = 8410
+
+printf "%b\n# Port to bind server to.\n" >> $config
+
+echo "server.port = $port" >> $config
+
+# Remote (RCS) host address.
+
+printf "%bRemote host address (name or IP) : "
+set rhost = "$<"
+
+printf "%b\n# Remote (RCS) host address.\n" >> $config
+
+echo "remote.host = $rhost" >> $config
+
+# Remote (RCS) port.
+
+printf "%bRemote port (outgoing requests) : "
+set rport = "$<"
+
+printf "%b\n# Remote (RCS) port.\n" >> $config
+
+echo "remote.port = $rport" >> $config
+
+# Connection queue length.
+
+printf "%bConnection queue length (default = 5) : "
+set qq = "$<"
+if ($qq == "") set qq = 5
+
+printf "%b\n# Connection queue length.\n" >> $config
+
+echo "backlog = $qq" >> $config
+
+# True if secure comms.
+
+printf "%bSecure connection (Y/N) ? "
+set a = "$<"
+if ($a == "Y") then   
+   
+    printf "%b\n# True if secure comms.\n" >> $config
+  
+    echo "secure = true" >> $config
+
+    printf "%bSpecial authentication method : "
+    set auth = "$<"
+    if ($auth == "") then
+	set auth = "NONE"
+    endif
+   
+    printf "%b\n# Special authentication method.\n" >> $config
+   
+    echo "special.auth = $auth" >> $config
+endif
+
+# Instrument config file.
+
+printf "%bInstrument config file name : "
+set ic = "$<"
+# Check to see if its relative and set the path correctly.
+set abs = `echo $ic | grep '^/'`
+if ($abs == $ic) then
+    set icf = $ic
+else
+    set icf = $cdir/$ic
+endif
+
+printf "%b\n# Instrument config file.\n" >> $config
+echo "inst.config = $icf" >> $config
+
+# (Optional) reconnection delay (millis).
+
+printf "%bOptional Reconnect delay (secs) : "
+set del = "$<"
+printf "%b\n# Optional Reconnect delay (millis).\n" >> $config
+if ($del == "") then
+    echo "# NOT USED" >> $config
+else
+    @ del = $del * 1000
+    echo "delay = $del" >> $config
+endif
+
+# (Optional) Interactive prompt.
+
+printf "%bOptional Interactive prompt : "
+set pr = "$<"
+printf "%b\n# Optional Interactive prompt.\n" >> $config
+if ($pr == "") then
+    set pr = "\r\nPOS>>"
+endif
+echo "prompt = $pr" >> $config
+
+# (Optional) Line terminator.
+
+printf "%bOptional Interactive line terminator : "
+set tr = "$<"
+printf "%b\n# Optional Interactive line terminator.\n" >> $config
+if ($tr == "") then
+    set tr = "\r\n"
+endif
+echo "terminator = $tr" >> $config
+
+# Logging setup.
+
+echo "Logging configuration."
+echo
+# TRACE Log.
+
+printf "%bTrace Logging configuration:\n" 
+printf "%b Set log level (0-10 or ALL) : "
+set ll = "$<"
+printf "%b Select formatter for file handler (csv, html) : "
+set tt = "$<"
+printf "%b Select file handler level (0-10 or ALL) : "
+set fl = "$<"
+printf "%b Select console handler level (0-10 or ALL) : "
+set cl = "$<"
+printf "%b\n# Trace Logging configuration.\n" >> $config
+echo "TRACE.logger  = $ll" >> $config
+echo "TRACE.file    = ${tt}:${fl}" >> $config
+echo "TRACE.console = $cl" >> $config
+
+# ERROR Log.
+printf "%bError Logging configuration:\n"
+printf "%b Set log level (0-10 or ALL) : "
+set ll = "$<"
+printf "%b Select formatter for file handler (csv, html) : "
+set tt = "$<"
+printf "%b Select file handler level (0-10 or ALL) : "
+set fl = "$<"
+printf "%b Select console handler level (0-10 or ALL) : "
+set cl = "$<"
+printf "%b\n# Error Logging configuration.\n" >> $config
+echo "ERROR.logger  = $ll" >> $config
+echo "ERROR.file    = ${tt}:${fl}" >> $config
+echo "ERROR.console = $cl" >> $config
+

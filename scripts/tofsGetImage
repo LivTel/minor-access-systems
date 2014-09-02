@@ -1,0 +1,43 @@
+#!/bin/csh
+
+# -------------------
+# SFX Client for TOCS
+# -------------------
+
+source /opt/ngat/etc/cshrc
+source $DEPLOY_BIN/class_setup
+
+set HOST = occ
+set PORT = 7166
+set ID = TOFS_GET
+
+set get = $1
+
+set local = $2
+
+# This should be $DEPLOY_MISC/certs
+set KEYSTORE     = "/home/eng/tmpcerts/pca.private"
+set TRUSTSTORE   = "/home/eng/tmpcerts/itr.public"
+
+if (! -e $KEYSTORE) then
+    echo "Could not find Keystore: $KEYSTORE"
+    exit 2
+endif
+
+set KEYPASS = geronimo
+
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 3
+endif
+
+echo "Grabbing file.. $get from $HOST as $local "
+
+set DEL = @
+
+set DEBUG = "-Djavax.net.ssl.debug=all"
+
+set APP = ngat.net.SSLFileTransfer
+java  -Dcpdelim=${DEL} $DEBUG $APP @client @id $ID @key $KEYSTORE @pass $KEYPASS @trust $TRUSTSTORE @host $HOST @port $PORT @get $get @local $local 
+
+

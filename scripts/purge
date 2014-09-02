@@ -1,0 +1,78 @@
+#!/bin/csh
+
+foreach file (/mnt/rat-image/c_[es]*_0.fits)
+
+    echo "Found $file "
+   
+    set ct = 0
+
+    set raw = `echo $file | cut -d"_" -f1-6`
+
+    echo "Raw file name is $raw "
+    set rfile = ${raw}_0.fits
+    set pfile = ${raw}_1.fits
+
+    echo "Unprocessed: $rfile " 
+    echo "Processed:   $pfile "
+
+    if (-e $pfile) then
+
+	echo "This file was processed - Assuming PLANETARIUM"
+    
+	cat /occ/tmp/archive_info | grep $pfile
+
+	if ($status == 0) then
+	    echo "$pfile is copied to kilo"
+	    @ ct++
+	else
+	    echo " $pfile was not transferred to kilo"
+	endif
+
+	cat /occ/tmp/ari_archive_info | grep $pfile
+
+	if ($status == 0) then
+	    echo "$pfile is copied to ari"
+	    @ ct++
+	else
+	    echo " $pfile was not transferred to ari"
+	endif
+
+	if ($ct == 2) then
+	    echo " $pfile has been fully archived - remove raw AND processed"
+	    /bin/rm -f $rfile
+	    /bin/rm -f $pfile
+	endif
+
+    else 
+
+	echo "This file was not processed - Assuming SCIENCE "
+
+        cat /occ/tmp/archive_info | grep $rfile
+
+        if ($status == 0) then
+            echo "$rfile is copied to kilo"
+            @ ct++
+        else
+            echo " $rfile was not transferred to kilo"
+        endif
+
+        cat /occ/tmp/ari_archive_info | grep $rfile
+
+        if ($status == 0) then
+            echo "$rfile is copied to ari"
+            @ ct++
+        else
+            echo " $rfile was not transferred to ari"
+        endif
+
+        if ($ct == 2) then
+            echo " $rfile has been fully archived - remove raw only"
+            /bin/rm -f $rfile                                                                                                                                                                 
+        endif
+
+    endif
+
+#sleep 1
+
+end
+ 

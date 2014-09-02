@@ -1,0 +1,603 @@
+#!/bin/csh
+
+# --------------------------------------
+# Archive transfer script.
+# --------------------------------------
+#
+# Usage: ari_xfer_rise n_threads [verbose]"
+#   Compulsory parameter n_threads is maximum number of files to be simultaneously transfering"
+
+#
+# e.g.   ari_xfer 4               -- Send everything not already sent. Not output to STDOUT
+# e.g.   ari_xfer 4 verbose       -- Send everything not already sent. Comments to STDOUT
+#
+# --------------------------------------
+#
+
+# Based on ari_archive_xfer_rt but with the SFX removed and replaced with scp.
+# Other than that flow is identical
+
+# MDT 19feb2014
+# this script is now called ari_xfer_lt-qc
+# incorporates changes to transfer data to lt-qc instead of lt-archive
+# part of the Data Handling Plan Feb 2014.
+# put into service 24feb2014
+
+# RJS 2011-07-01
+# Changed the rules for ringo2. We now transfer all preprocessed data for the archive
+# but also the first frame of unpreprocessed data so that something appears in quicklook
+# Depends on another script running on ringo2 itslef that shuffles the first sub frame 
+# into ForQuicklook subdirectory.
+
+# $Log: ari_xfer,v $
+# Revision 1.14  2010/03/17 17:07:07  jmm
+# liblog_udp.so now moved to /usr/local/bin, which is already in LD_LIBRARY_PATH,
+# so the explicit addition to the path has been removed again.
+#
+# Revision 1.13  2010/03/17 14:57:15  jmm
+# Following CJM advice in Bug 1614:
+# * added line to add path of liblog_udp.so to LD_LIBRARY_PATH
+# * changed LTLOG command to be the dynamic ltlog, not the
+#   static ltlog_static.
+# NB: current location of liblog_udp.so is /home/occ/tmp/20091020, & this
+# needs to be changed to somewhere more permanent. Waiting for confirmation
+# that no previously-established library directory exists first. In case this
+# part takes more than a day to resolve, script being locked now.
+#
+# Revision 1.12  2010/02/03 22:42:37  eng
+# Use ics lockfiles for ratcam
+#
+# Revision 1.10  2009/05/19 18:26:14  eng
+# Typo in setting of LTLOG.
+#
+# Revision 1.9  2009/05/19 17:39:35  eng
+# First attempt at adding Global Logging System (GLS) prints using the C API binary
+# "ltlog_static", developed by CJM. Note that the presence of the binary is not
+# considered critical to the running of this script. If the binary is not found
+# this script should carry on anyway.
+#
+
+
+
+# ----------------------------- #
+# CHECK GLS LTLOG BINARY EXISTS #
+# ----------------------------- #
+set LTLOG = /usr/local/bin/ltlog
+if ( -f $LTLOG ) then
+    set LTLOG_EXISTS = 1
+else
+    set LTLOG_EXISTS = 0
+endif
+
+
+
+# This would not be required if we were running as occ
+# DEPLOY_TMP is already in the environment
+set DEPLOY_TMP = /occ/tmp
+
+# Declare name of lock file.
+set lock = ${DEPLOY_TMP}/ari_xfer.lock
+
+# Define number of simultaneous transfers which are allowed.
+set THREAD_COUNT = $1
+set THREAD_LOCK=${DEPLOY_TMP}/xfer_thread_lock.
+
+# Set the date format which will be use in logs
+alias datestamp 'date +"%h %d %H:%M:%S"'
+set procname = ari_xfer_lt-qc
+
+# The archive.
+set ARCHIVE_USER = data
+# set ARCHIVE_HOST = 150.204.240.8
+# set ARCHIVE_HOST = lt-archive.astro.livjm.ac.uk
+set ARCHIVE_HOST = lt-qc.astro.livjm.ac.uk
+set ARCHIVE_PORT = 22
+# set ARCHIVE_PORT = 2222
+# set ARCHIVE_PATH = /data/archive/incoming/lt/
+set ARCHIVE_PATH = /data/incoming/
+
+# Logfile and name of file containing list of transfered files
+# Changed INFO to old filename for consistency with other scripts
+# JMM 20080208
+set LOGFILE = $DEPLOY_TMP/ari_xfer.log
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+    chmod 666 $LOGFILE
+endif
+
+set INFO    = $DEPLOY_TMP/ari_archive_xfer_list
+touch $INFO
+
+# Where are the data (NFS mount).
+# These are the directories to be scanned for transfer data
+
+set LIST_OF_ARCHIVE_DIRS = "/mnt/o-image /mnt/frodo-image /mnt/ringo3-1-image/Preprocessed /mnt/ringo3-1-image/ForQuicklook /mnt/ringo3-2-image/Preprocessed /mnt/ringo3-2-image/ForQuicklook /mnt/thor-image"
+set LIST_OF_ARCHIVE_DIRS = "/mnt/o-image /mnt/frodo-image /mnt/ringo3-1-image/Preprocessed /mnt/ringo3-1-image/ForQuicklook /mnt/ringo3-2-image/Preprocessed /mnt/ringo3-2-image/ForQuicklook "
+# for testing. MDT 19feb2014
+# set LIST_OF_ARCHIVE_DIRS = "/tmp/test"
+
+
+
+set HOSTNAME = `hostname`
+
+set starttime = `datestamp`
+
+set DEBUG = 0
+
+####################
+# Parse command line
+# This could be a lot more elegant!!!
+####################
+set nargs = ${#argv}
+if ( $nargs == 2 ) then
+  if ("$2" == "verbose") then
+    set DEBUG = 1
+    echo `datestamp` $HOSTNAME ${procname}: "DEBUG turned on."
+  else 
+    echo "Usage: ari_xfer n_threads [verbose]"
+    echo "   Compulsory parameter n_threads is maximum number of files to be simultaneously transfering"
+
+    exit 1
+  endif 
+endif
+
+if ( $nargs > 2 ) then
+  echo "Usage: ari_xfer n_threads [verbose]"
+  echo "   Compulsory parameter n_threads is maximum number of files to be simultaneously transfering"
+
+  exit 1
+endif 
+
+echo `datestamp` $HOSTNAME ${procname}: "Start xfer script " >> $LOGFILE
+if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Start xfer script "
+if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 1 -s XFER -sub_system normal -source_file ari_xfer -m Starting xfer script.
+
+
+###########
+# Lockfiles
+###########
+set lockattempts = 1
+createlockfile:
+
+umask 333
+if ($DEBUG) echo `datestamp` "$HOSTNAME $procname : Creating lock file (pid = $$)" | tee -a $LOGFILE
+( nohup echo "$$ $procname" > $lock ) >& /dev/null
+# First see if creating the lock worked
+if ($status != 0) then
+    if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "Creation of lock file failed" | tee -a $LOGFILE
+    # Next see if the problem is an orphan lock file languishing in /tmp
+    if ( -e $lock ) then
+      if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "Lock file exists. Looking at contents" | tee -a $LOGFILE
+      set lock_procname = `awk '{print $2}' $lock`
+      set lock_proc = `awk '{print $1}' $lock`
+      ps -elf | grep $lock_procname | grep $lock_proc >& /dev/null
+      if($? == 0) then
+        if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "By running ps it looks like a $lock_procname is underway. Not starting a new instance." | tee -a $LOGFILE
+        #if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 1 -s XFER -sub_system rise -source_file ari_xfer_rise -m XFER lockfile conflict, rise transfer aborted, exiting.
+        if ($lockattempts >= 5) then
+          echo `datestamp` $HOSTNAME $procname : "Made five attempts to get the lock file. Please investigate." | tee -a $LOGFILE
+          echo `datestamp` $HOSTNAME $procname : "This run started at $starttime " | tee -a $LOGFILE
+          exit 2
+        else
+          if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "Sleeping one minute and will try again. (lockattempts = $lockattempts)" | tee -a $LOGFILE
+          @ lockattempts++
+	  # Do not use exactly 60sec since the cron gets called every minute so I want to slightly spread the instances of re-tries
+          sleep 65
+          goto createlockfile
+        endif
+      else
+        echo `datestamp` $HOSTNAME $procname : "By running ps it looks like this is an out of date $lock_procname lock file. It will be deleted and $procname will proceed." | tee -a $LOGFILE
+        rm -f $lock
+        goto createlockfile
+      endif
+    else
+      echo `datestamp` $HOSTNAME $procname : "Unexplained error. Lock file creation failed, but there is no lock file at $lock" | tee -a $LOGFILE
+      exit 3
+    endif
+endif
+umask 22
+
+# Now that the script's master lock file is established we can safely delete any 
+# individual thread locks. They must be left over from another run.
+set counter=0
+while ( $counter < $THREAD_COUNT )
+  if (-e ${THREAD_LOCK}$counter) rm -f ${THREAD_LOCK}$counter
+  @ counter++
+end
+
+if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "End of lockfile housekeeping" | tee -a $LOGFILE
+if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "Lockfile $lock contains:" | tee -a $LOGFILE
+if ($DEBUG) echo `datestamp` $HOSTNAME $procname : `cat $lock`  | tee -a $LOGFILE
+
+# Now we have a lockfile created, we need to enfore cleanup at the end
+onintr cleanup
+
+##################
+# End of Lockfiles
+##################
+
+
+# General housekeeping on the log files
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+endif
+if (! -e $INFO) then
+    touch $INFO
+endif
+# How many files in $INFO. This will be used at the end to deduce how many files were successfully transferred
+set info_length_pre = `wc -l $INFO | awk '{print $1}'`
+
+
+
+
+
+# Check number of files to xfer.
+if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "List of directories to look in: $LIST_OF_ARCHIVE_DIRS " | tee -a $LOGFILE
+foreach check_dir ($LIST_OF_ARCHIVE_DIRS)
+  if (! -e $check_dir ) then
+    echo `datestamp` $HOSTNAME ${procname}: "Cannot locate archive image dir: ${check_dir}" >>& $LOGFILE
+    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Cannot locate archive image dir: ${check_dir}"
+    if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 1 -s XFER -sub_system normal -source_file ari_xfer -m Cannot locate archive image dir: ${check_dir}, exiting.
+    #exit 3
+    set LIST_OF_ARCHIVE_DIRS = `echo $LIST_OF_ARCHIVE_DIRS | tr " " "\n" | grep -v $check_dir | tr "\n" " "`
+    echo "Exclude $check_dir from list and proceed with $LIST_OF_ARCHIVE_DIRS"
+  endif
+end
+
+
+
+
+
+
+
+
+# First peruse all the directories to see what nights' data are getting sent. Normally this will just 
+# be tonight, but no harm in checking for any left overs. The list of nights to consider gets written to ${DEPLOY_TMP}/transfer_datelist.
+# For each night in the ${DEPLOY_TMP}/transfer_datelist, we count the number of raw frames and write the number into $DEPLOY_TMP/${date_to_count}.filecount.
+# Lastly we actually send the $DEPLOY_TMP/${date_to_count}.filecount to archive so we can check we have everything.
+if ($DEBUG) echo "Building list of all files to consider"
+if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 4 -s XFER -sub_system normal -source_file ari_xfer -m Building list of all files to consider.
+if ( -e ${DEPLOY_TMP}/transfer_datelist ) /bin/rm ${DEPLOY_TMP}/transfer_datelist
+touch ${DEPLOY_TMP}/transfer_datelist
+foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
+  echo ${dir_loop}/?_?_20??????_*_0.fits |& grep -v "No match" | tr " " "\n" | cut -d"_" -f3 | sort | uniq >> ${DEPLOY_TMP}/transfer_datelist 
+end
+sort ${DEPLOY_TMP}/transfer_datelist | uniq >! ${DEPLOY_TMP}/transfer_datelist.tmp
+mv ${DEPLOY_TMP}/transfer_datelist.tmp ${DEPLOY_TMP}/transfer_datelist
+
+
+if ($DEBUG) then 
+  echo "Finished building list:"
+  cat ${DEPLOY_TMP}/transfer_datelist
+  echo "List ends."
+endif
+
+if (-e ${DEPLOY_TMP}/xfer_count_list) rm ${DEPLOY_TMP}/xfer_count_list
+foreach date_to_count (`cat ${DEPLOY_TMP}/transfer_datelist`)
+  foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
+    echo ${dir_loop}/?_?_${date_to_count}_*_0.fits |& grep -v "No match" | tr " " "\n" >> ${DEPLOY_TMP}/xfer_count_list
+  end
+
+  # Discard from the list any files which still have a lock
+  grep -v lock ${DEPLOY_TMP}/xfer_count_list >! ${DEPLOY_TMP}/xfer_count_list.tmp
+  mv -f ${DEPLOY_TMP}/xfer_count_list.tmp ${DEPLOY_TMP}/xfer_count_list
+
+  # Count the number of _0.fits files
+  set cf = `cat ${DEPLOY_TMP}/xfer_count_list | wc -l `
+
+  ## We need to exclude from the count any files which still have a lock file.
+  #set count_of_locks = 0
+  #foreach fn (`cat ${DEPLOY_TMP}/xfer_count_list`)
+  #  if ( -e ${fn:r}.lock ) then
+  #    @ count_of_locks++
+  #    if ($DEBUG) echo "Found $count_of_locks lock files in date $date_to_count and will decrement cf accordingly."
+  #  endif
+  #end
+  #@ cf -= $count_of_locks
+
+  if ( $cf == 0 ) then
+    grep -v $date_to_count ${DEPLOY_TMP}/transfer_datelist > ${DEPLOY_TMP}/transfer_datelist.tmp
+    mv ${DEPLOY_TMP}/transfer_datelist.tmp ${DEPLOY_TMP}/transfer_datelist
+  else
+    echo $cf > $DEPLOY_TMP/${date_to_count}.filecount 
+    # scp command is the actual transfer
+    if ($DEBUG) echo "Sending ${date_to_count}.filecount file"
+    if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 4 -s XFER -sub_system normal -source_file ari_xfer -m Sending ${date_to_count}.filecount, ${cf} files.
+    scp -P $ARCHIVE_PORT $DEPLOY_TMP/${date_to_count}.filecount ${ARCHIVE_USER}@${ARCHIVE_HOST}:${ARCHIVE_PATH}. >>& $LOGFILE
+    rm $DEPLOY_TMP/${date_to_count}.filecount
+
+    cp ${DEPLOY_TMP}/xfer_count_list $DEPLOY_TMP/${date_to_count}.filelist
+    # scp command is the actual transfer
+    if ($DEBUG) echo "Sending ${date_to_count}.filelist file"
+    if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 4 -s XFER -sub_system normal -source_file ari_xfer -m Sending ${date_to_count}.filelist, ${cf} files.
+    scp -C -P $ARCHIVE_PORT $DEPLOY_TMP/${date_to_count}.filelist ${ARCHIVE_USER}@${ARCHIVE_HOST}:${ARCHIVE_PATH}. >>& $LOGFILE
+    rm $DEPLOY_TMP/${date_to_count}.filelist
+  endif
+
+  rm -f ${DEPLOY_TMP}/xfer_count_list
+
+end
+
+# Count up all the raw data ready to send
+if ($DEBUG) echo "Building list of all files to consider again"
+if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 4 -s XFER -sub_system normal -source_file ari_xfer -m Building list of all files to consider again.
+
+if (-e ${DEPLOY_TMP}/xfer_count_list) rm ${DEPLOY_TMP}/xfer_count_list
+foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
+  echo ${dir_loop}/?_?_20??????_*_0.fits |& grep -v "No match" | tr " " "\n" >> ${DEPLOY_TMP}/xfer_count_list
+end
+set cf = `cat ${DEPLOY_TMP}/xfer_count_list | wc -l`
+rm ${DEPLOY_TMP}/xfer_count_list
+
+if (-e ${DEPLOY_TMP}/xfer_size_list) rm ${DEPLOY_TMP}/xfer_size_list
+foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
+  ls -l ${dir_loop}/?_?_20??????_*_0.fits |& grep -v "No match" >> ${DEPLOY_TMP}/xfer_size_list
+end
+set sz = `cat ${DEPLOY_TMP}/xfer_size_list | awk '{count += $5} END { print (count/1000000)}'`
+rm ${DEPLOY_TMP}/xfer_size_list
+
+# We must bail out now if no files or else the foreach will "crash" the script. 
+if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "There are $cf files to transfer with total size: $sz MBytes"
+if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m There are $cf files to transfer with total size: $sz MBytes.
+echo `datestamp` $HOSTNAME ${procname}: "There are $cf files to transfer with total size: $sz MBytes" >>& $LOGFILE
+if ( $cf == 0 ) goto cleanup
+
+# File transfers attempted 
+set attempts = 0
+# Files skipped
+set sk = 0
+
+
+# Build a list of all the files
+# Exclude any that have already been sent
+if (-e ${DEPLOY_TMP}/list_to_transfer) rm -f ${DEPLOY_TMP}/list_to_transfer
+touch ${DEPLOY_TMP}/list_to_transfer
+foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
+  # The following if() continue makes us jump out if there are no files to be transfered for this instrument. On to the next $dir_loop
+  if ( ` ls ${dir_loop}/?_?_20??????_*_0.fits ${dir_loop}/?_?_20??????_*_0.fits.gz |& grep -c "No match"` ) continue 
+  foreach file (${dir_loop}/?_?_20??????_*_0.fits ${dir_loop}/?_?_20??????_*_0.fits.gz  )
+	  # Check the list of already transfered files
+	  grep $file $INFO >>& /dev/null
+	  if ($status == 0) then
+	    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Already transferred $file - skip"  
+	    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Already transferred $file - skip"  >>& $LOGFILE
+	    if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Already transferred ${file} - skip
+	    @ sk++
+	  else
+	    echo $file >> ${DEPLOY_TMP}/list_to_transfer
+	  endif
+  end
+end
+
+# If there are no files to be done, give up and exit
+set tmp_count = `wc -l ${DEPLOY_TMP}/list_to_transfer | awk '{print $1}'`
+if ( $tmp_count == 0) then
+  if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "No files found which have not already been transfered" >>& $LOGFILE
+  goto cleanup
+else
+  if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "There are $tmp_count untransfered files to consider" >>& $LOGFILE
+endif
+
+
+#We want a sleep a little at the start just to 
+#give the system time to close any half written files before the
+#file transfer starts.
+if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Sleeping on first loop."
+sleep 10
+
+
+foreach file (`cat ${DEPLOY_TMP}/list_to_transfer`) 
+
+    # The purge and transfer trip over each other pretty much every day. No real harm is done other than weird error
+    # message because the file this script is trying to transfer no longer exists. It has been purged. The 
+    # following jumps out of the loop if the file has disappeared.
+    if (! -e $file ) then
+      echo `datestamp` $HOSTNAME ${procname}: File $file no longer exists. Assuming it was just purged. >>& $LOGFILE
+      if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: File $file no longer exists. Assuming it was just purged. 
+      if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m File $file no longer exists. Assuming it was just purged. 
+      continue
+    endif
+
+    # Though we do not transfer reduced data, we use the existence of the reduced file to imply that the
+    # exposure is complete and safe to transfer. Therefore I have to synthesize the reduced filename for
+    # checking against.
+    set root = `echo $file | cut -d"_" -f1-6`
+    set pfile = ${root}_1.fits
+
+    # Some instruments have lock files and some do not
+    # If lockfiles exist
+    #	Use lock file and transfer as soon as there is none
+    # If lockfiles not in use
+    #	Transfer when either
+    #		File > 1 hour old
+    #		_1.fits file exists
+    set inst_letter = `echo ${root:t} | cut -d_ -f1 `
+    switch ($inst_letter)
+      case c:
+      case b:
+      case r:
+      case m:
+      case h:
+      # o p Ringo and ringo2
+      #case o:
+      case p:
+      case s:
+      case w:
+      # testing
+      # case x:
+      # d e f are Ringo3. Does not use locks, but also files will not be there unless they have been preprocessed
+      # so it should be safe to immediately transfer anything that is there
+      case d:
+      case e:
+      case f:
+	set USE_ICS_LOCK = 1
+	breaksw
+      case q:
+	set USE_ICS_LOCK = 0
+	breaksw
+      default:
+        echo `datestamp` $HOSTNAME ${procname}: Unknown instrument $inst_letter. Skip this file. >>& $LOGFILE
+        if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Unknown instrument $inst_letter. Skip this file. 
+	continue
+    endsw
+
+    set ok_to_xfer = 0
+
+    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: Consider $file >>& $LOGFILE
+
+#
+# Decide whether this file is ready to go
+#
+    if ($USE_ICS_LOCK) then
+
+      # Files without a lock file are OK to go
+      # We only use this if $USE_ICS_LOCK which is instrument specific
+      set ics_lock = ${root}_0.lock
+      if (! -e $ics_lock) then
+        @ ok_to_xfer++
+        if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: $ics_lock. "No lock file. Transfer OK" >>& $LOGFILE
+      else
+        echo `datestamp` $HOSTNAME ${procname}: $ics_lock. "Lock file exists. No transfer" >>& $LOGFILE
+      endif
+
+    else
+
+      # Files with an L1 file are OK to go
+      if ( -e $pfile ) then
+	@ ok_to_xfer++
+	if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: $root. "L1 file exists so we can transfer" >>& $LOGFILE
+      else
+	echo `datestamp` $HOSTNAME ${procname}: $root. "There is no L1 file. Check age" >>& $LOGFILE
+      endif
+
+      # Files > 1 hours old are OK to go
+      set now = `date +%s`
+      set filetime = `date -r $file +%s`
+      @ diff = $now - $filetime
+      if ($diff > 3600) then
+	@ ok_to_xfer++
+	if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: $root. "File over 1 hour old so we can transfer" >>& $LOGFILE
+      else
+	echo `datestamp` $HOSTNAME ${procname}: $root. "File less than 1 hour old. No transfer" >>& $LOGFILE
+      endif
+
+    endif
+
+
+
+
+    if ($ok_to_xfer ) then
+ 
+      # At this point we have decided to send the file so copy it to the temp space
+      # zip it up and start the transfer
+
+      cp $file $DEPLOY_TMP/.
+      set erstat = $status
+      if ($erstat != 0) then
+		echo "Failed to copy file $file into DEPLOY_TMP : erstat = $erstat"
+		echo `datestamp` $HOSTNAME ${procname}: "Failed to copy $file into DEPLOY_TMP : erstat = $erstat" >> $LOGFILE
+		if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Failed to copy $file into DEPLOY_TMP : erstat = $erstat
+      endif
+      set cfile = ${DEPLOY_TMP}/${file:t}
+
+      gzip -f $cfile
+      if ($status != 0) then
+                echo "Failed to zippify $cfile : $status"
+                echo `datestamp` $HOSTNAME ${procname}: "Failed to zippify $cfile : $status" >> $LOGFILE
+		if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Failed to zippify $cfile : $status
+      endif
+
+      set sfile = ${cfile}.gz
+      set dfile = ${ARCHIVE_PATH}${file:t}.gz
+      #echo `datestamp` $HOSTNAME ${procname}: "Will Send copy: $sfile to $dfile "  >>& $LOGFILE
+
+      /usr/bin/md5sum $sfile | sed 's/ .*\//  /' > $sfile.md5
+
+      # This block is the loop which checks the availability of transfer threads, waits until one
+      # is free and actually sends the file. The while() loop continuously cycles from from 0 -> $THREAD_COUNT
+      # attempting to create a lockfile. If is succeeds, an scp transfer is initiated. If it fails it tries the next.
+      #
+      # If something went wrong, this could technically be an infinite loop. In order to prevent that, a final time out
+      # could quite easily be implemented near the sleep command so that after a certain number of attempts we jump out
+      set counter=0
+      while ( $counter < $THREAD_COUNT)
+	      lockfile -0 -r 0 ${THREAD_LOCK}$counter >& /dev/null
+	      if ( $? == 0 ) then	# Lockfile was created, so start transfer
+		set this_thread = $counter
+		if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Start transfer of $sfile on thread $this_thread" 
+		echo `datestamp` $HOSTNAME ${procname}: "Start transfer of $sfile on thread $this_thread" >> $LOGFILE
+		if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 3 -s XFER -sub_system normal -source_file ari_xfer -m Start transfer of $sfile on thread $this_thread
+		@ attempts ++
+		# Following command does scp, some admin and deletes the lockfile. Whole thing is BG'd so that flow continues
+		# while teh transfer is happening
+		if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Transferring $file
+
+		(nice scp -P $ARCHIVE_PORT $sfile.md5 $sfile ${ARCHIVE_USER}@${ARCHIVE_HOST}:${ARCHIVE_PATH}. >>& $LOGFILE ; set ex = $status ; echo `datestamp` $HOSTNAME ${procname}: "Exit status ($sfile) was: $ex" >> $LOGFILE ; if ($ex == 0) echo $file `datestamp` >> $INFO; /bin/rm -f $sfile.md5 $sfile; if ($ex != 0) echo `datestamp` $HOSTNAME ${procname}: "Transfer $file failed with status: $ex " >>& $LOGFILE; rm ${THREAD_LOCK}$this_thread >>& $LOGFILE & ) > /dev/null
+
+		set counter = 99999	# Arbitrarily large number forces us to jump out of while() once a transfer has been initiated
+	      else
+	        @ counter++
+	        if ($counter == $THREAD_COUNT) then
+		  # If we have tried all threads, have a small sleep and then start again back at counter = 0
+		  set counter = 0
+		  sleep 1
+		  echo `datestamp` $HOSTNAME ${procname}: "All $THREAD_COUNT threads are busy. $file waiting." >> $LOGFILE
+		  if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m All $THREAD_COUNT threads are busy. $file waiting.
+	        endif
+	      endif
+      end
+      # End of the transfer while() loop.
+
+    else
+
+      if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "File $file was skipped" >>& $LOGFILE
+      @ sk++
+
+    endif	# End of  if ($ok_to_xfer)
+
+end	# end of the file foreach
+
+
+#Ensure that all threads are complete before tidying up and writing out the stats
+# All this does is open and close every lockfile in order. That can only be done once all transfers have finished.
+set counter=0
+while ( $counter < $THREAD_COUNT)
+  lockfile ${THREAD_LOCK}$counter
+  rm -f ${THREAD_LOCK}$counter
+  @ counter++
+end
+
+set info_length_post = `wc -l $INFO | awk '{print $1}'`
+@ ct = $info_length_post - $info_length_pre
+@ ff = $attempts - $ct
+
+echo `datestamp` $HOSTNAME ${procname}: "Run statistics" >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Total files: $cf " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Files tranfers attempted this run: $attempts " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Files skipped: $sk " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Successful tranfers this run: $ct " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Failed transfers: $ff ">>& $LOGFILE
+#    echo "Total transfer $tt Mbytes" >>& $LOGFILE
+
+echo `datestamp` $HOSTNAME ${procname}: "Transfer run completed successfully" >>& $LOGFILE
+
+if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Run statistics: Total files: ${cf}, Attempts: ${attempts}, Skipped: ${sk}, Transfers: ${ct}, Failed transfers: ${ff}
+if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 1 -s XFER -sub_system normal -source_file ari_xfer -m Transfer run completed successfully.
+
+
+cleanup:
+if (-e $lock) then
+    /bin/rm -f $lock
+    if ($status == 0) then
+	if ($DEBUG) echo "Removed lockfile"
+	if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 4 -s XFER -sub_system normal -source_file ari_xfer -m Removed lockfile.
+    else
+	echo "** Warning: Unable to remove lockfile: $lock "
+	echo `datestamp` $HOSTNAME ${procname}: "** Warning: Unable to remove lockfile: $lock " >> $LOGFILE
+	if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 1 -s XFER -sub_system normal -source_file ari_xfer -m Unable to remove lockfile: ${lock}.
+    endif
+else
+    echo "** Warning: Lockfile $lock was not found "
+    echo `datestamp` $HOSTNAME ${procname}: "** Warning: Lockfile $lock was not found " >> $LOGFILE
+    if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 1 -s XFER -sub_system normal -source_file ari_xfer -m Lockfile $lock was not found.
+endif

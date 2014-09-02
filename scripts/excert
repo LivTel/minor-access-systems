@@ -1,0 +1,16 @@
+#!/bin/csh
+
+#
+# Export cert to file.
+#
+# Usage: excert <name> <alias> <keystore> <pass> <tmp-file>
+
+set NAME     = "$1"
+set ALIAS    = "$2"
+set KEYSTORE = "$3"
+set PASS     = "$4"
+set FILE     = "$5"
+
+echo "Exporting client public private key pair for $NAME "
+
+keytool -v -export -alias $ALIAS -keystore ${DIR}/$KEYSTORE -file $FILE -storepass $PASS

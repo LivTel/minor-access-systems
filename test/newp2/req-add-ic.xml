@@ -1,0 +1,8 @@
+<p2ml version = "2.0">
+ <add-inst-config program = "XNSO">
+   <config instrument = "IO:O"  name = "SDSS-R-ND3-2x2" >
+       <filter name = "SDSS-R"/>
+       <lowername = "ND3"/>
+       <binning x = "2" y = "2" />
+ </config>
+</p2ml>

@@ -1,0 +1,86 @@
+#!/bin/csh
+
+# --------------------------------------------------
+# Launcher for: Secure File Transfer Watchdog (FXW).
+# --------------------------------------------------
+
+if (${#argv} < 2) then
+    echo "\033[45mUsage: fxw ( start | stop ) <model> \033[0m"
+    exit 1
+endif
+
+source ${DEPLOY_BIN}/setup
+source ${DEPLOY_BIN}/class_setup
+source ${DEPLOY_BIN}/fxw_setup
+
+echo $CLASSPATH 
+
+set model = $2
+
+set FXW_CONSOLE_LOG_FILE = $DEPLOY_TMP/fxw_${model}.log
+
+# Add arg list.
+echo "Try Sourcing $FXW_CONFIG/${model}_fxw_args "
+
+source $FXW_CONFIG/${model}_fxw_args 
+
+echo "SL is $SERVER_LIST "
+
+set serverlist = `glob $SERVER_LIST `
+
+set PID = $DEPLOY_TMP/fxw_${model}.pid
+
+switch ($1)
+
+    case stop:
+
+	echo "File Transfer Watchdog: (${model}) stopping"
+	
+	foreach server ( $serverlist )
+
+	    $DEPLOY_BIN/sfx_init stop $server >>& ${FXW_CONSOLE_LOG_FILE} &
+
+	end
+
+	if (! -e $PID) then
+	    echo "Cannot locate a PID file: $PID "
+	    exit 1
+	endif
+	set AID = `cat $PID` 
+    
+	if ($AID == "") then
+	    echo "$PID does not contain a valid PID for the FXW"
+	    exit 2
+	endif
+
+	set BID = `ps -ef | grep $AID | awk '{if ($3 == '$AID') print $2}'`
+	echo FXW Watchdog process is $AID ..Killing with SIG_KILL
+	kill -9 $AID  
+	echo FXW Process is          $BID ..Killing with SIG_KILL
+	kill -9 $BID
+
+	rm -f $PID
+
+	breaksw
+
+    case start:
+
+	echo "File Transfer Watchdog: (${model}) starting"
+
+	echo $$ > $PID
+
+	set mexit = 0
+
+	foreach server ( $serverlist )
+
+	    # Launch each generator in bg mode.
+
+	    $DEPLOY_BIN/sfx_init start $server >>& ${FXW_CONSOLE_LOG_FILE} &
+
+	    #su -c "$DEPLOY_BIN/sfx_init start $server >>& ${FXW_CONSOLE_LOG_FILE} &" xfer
+
+	end
+
+	breaksw
+
+endsw

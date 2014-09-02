@@ -1,0 +1,231 @@
+#!/bin/csh
+
+# --------------------------------------------------------------
+# Launcher for: Image Data Archive Transfer Client (IDA Client).
+# --------------------------------------------------------------
+
+# --------------------------------------------------------------
+# Usage: ida_util [ test | exec ] <model>
+# --------------------------------------------------------------
+
+# --------------------------------------------------------------
+# Model Source Parameters.
+# --------------------------------------------------------------
+# ARCHIVE_NAME      The ID of this model.
+# ARCHIVE_IMAGE_DIR Directory conatining images.
+# ARCHIVE_SELECTOR  Search selector pattern (selects raw file).
+# ARCHIVE_XXX       Determines which process state of files to send.
+#
+# ARCHIVE_DEST      Remote directory at archive host 
+#                   (relative to server base).
+# ROUTE             Transfer routing model.
+# --------------------------------------------------------------
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/archive_xfer_setup
+source $DEPLOY_BIN/sfx_setup
+
+if (${#argv} < 2) then
+    echo "Usage: ida_util { exec | test } <model>  "
+    echo "       model: Archive Transfer model."
+    foreach route ($SFX_CONFIG/*_ida_args)
+	set rt  = ${route:t}
+	echo "             - $rt "
+    end
+
+    echo "       test:  Only show files to send."
+    echo "       send:  Send files."
+    exit 1
+endif
+
+set scope = $DEPLOY_SYSTEM
+
+set mode  = $1
+set model = $2
+
+source $ARCHIVE_CONFIG/${model}_ida_args
+
+echo "Image Data Archive Transfer Client: (${ARCHIVE_NAME}) starting"
+
+if ($mode == "test") then
+    set test
+endif
+
+set dd = `date -u "+%Y%m%d"`
+set ds = `date -u "+%Y-%m-%d %H:%M"`
+
+set LOGFILE = $DEPLOY_LOG/${ARCHIVE_NAME}_ida_log_${dd}
+set JOURNAL = $DEPLOY_TMP/${ARCHIVE_NAME}_archive_info
+
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+endif
+
+if (! -e $JOURNAL) then
+    touch $JOURNAL
+endif
+
+echo "Starting Image Data Archive Transfer ($ARCHIVE_NAME), Using route: $ROUTE at: $ds " >>& $LOGFILE
+
+# Check we have the key store (client's private key).
+#if (! -e $KEYSTORE) then   
+ #   echo "Could not find Keystore: $KEYSTORE" >>& $LOGFILE
+  #  exit 1
+#endif
+
+# Check we have the trust store (servers' public keys).
+#if (! -e $TRUSTSTORE) then
+ #   echo "Could not find Truststore: $TRUSTSTORE" >>& $LOGFILE
+  #  exit 2
+#endif
+
+# Check the certificate validity dates.
+#$ARCHIVE_SCRIPTS/check_cert $KEYSTORE $KEYPASS >>& $LOGFILE
+#$ARCHIVE_SCRIPTS/check_cert $TRUSTSTORE public >>& $LOGFILE
+
+set BANDWIDTH = 5
+
+set APP = ngat.net.SSLFileTransfer
+
+# Check number of files to xfer.
+
+if (! -e ${ARCHIVE_IMAGE_DIR}) then
+    echo "Cannot locate archive image dir: ${ARCHIVE_IMAGE_DIR}" >>& $LOGFILE
+    exit 3
+endif
+
+set cf = `ls -1 ${ARCHIVE_IMAGE_DIR}/$ARCHIVE_SELECTOR | wc -l`
+set sz = `ls -l ${ARCHIVE_IMAGE_DIR}/$ARCHIVE_SELECTOR | awk '{count += $5} END { print (count/1000000)}'`
+
+#set sz = `ls -l ${ARCHIVE_IMAGE_DIR} | awk '{count += $5} END { print (count/1000000000)}'`
+
+echo "There are $cf files to transfer with total size: $sz MBytes" >>& $LOGFILE
+
+sleep 5
+
+# Files transferred
+set ct = 0
+# MBytes transferred
+set tt = 0
+# Files skipped
+set sk = 0
+# Failed to transfer
+set ff = 0
+
+set list = `glob ${ARCHIVE_IMAGE_DIR}/${ARCHIVE_SELECTOR}`
+
+foreach file ( $list )
+
+    set raw = `echo $file | cut -d"_" -f1-6`
+
+    echo "Raw file name is $raw " >>& $LOGFILE
+    set rfile = ${raw}_0.fits
+    set pfile = ${raw}_1.fits
+
+    echo "Unprocessed: $rfile "   >>& $LOGFILE
+    echo "Processed:   $pfile "   >>& $LOGFILE
+    if (-e $pfile) then
+
+	echo "This file was processed - Assuming PLANETARIUM" >>& $LOGFILE
+    
+        set fs = `ls -l $pfile | awk '{print ($5/1000000)}'` 
+   
+	echo "Ready to Transfer: $pfile " >>& $LOGFILE
+ 
+	set find = `cat $JOURNAL | grep $pfile `
+	
+	if ($status == 0) then
+
+	    echo "Already transferred $pfile - skip"  >>& $LOGFILE
+	    @ sk++
+
+	else
+	
+	    set dfile = $pfile:t
+
+	    #java -Dcpdelim=${DD} $APP ${DD}client ${DD}id $ID ${DD}key $KEYSTORE ${DD}pass $KEYPASS ${DD}trust $TRUSTSTORE \
+	     #${DD}host $RELAY_HOST ${DD}port $RELAY_PORT ${DD}auth ${DD}band $BANDWIDTH \
+	     #${DD}fwd $pfile ${DD}rhost $ARCHIVE_HOST ${DD}rport $ARCHIVE_PORT  ${DD}dest $dfile 
+
+	    if (${?ARCHIVE_DEST}) then
+		set dfile = $ARCHIVE_DEST/$dfile 
+	    endif
+
+	    $DEPLOY_BIN/sfx_client $ROUTE $pfile $dfile 
+
+	    set ex = $status
+	  
+	    if ($ex == 0) then
+		echo "Transferred: $pfile $fs MBytes" >>& $LOGFILE
+		echo $pfile >>& $JOURNAL
+		@ ct++
+		set tt = ` echo $tt $fs | awk '{print ($1+$2)}'`	
+	    else
+		echo "Transfer $pfile failed with status: $ex " >>& $LOGFILE
+		@ ff++
+	    endif
+
+	    sleep 5
+
+	endif
+
+   else
+
+	echo "This file was not processed - Assuming SCIENCE" >>& $LOGFILE
+    
+        set fs = `ls -l $rfile | awk '{print ($5/1000000)}'` 
+        
+	echo "Ready to Transfer: $rfile " >>& $LOGFILE
+ 
+	set find = `cat $JOURNAL | grep $rfile `
+	
+	if ($status == 0) then
+
+	    echo "Already transferred $rfile - skip"  >>& $LOGFILE
+	    @ sk++
+
+	else
+
+	    set dfile = $rfile:t
+
+	    #java -Dcpdelim=${DD} $APP ${DD}client ${DD}id $ID ${DD}key $KEYSTORE ${DD}pass $KEYPASS ${DD}trust $TRUSTSTORE \
+	     #${DD}host $RELAY_HOST ${DD}port $RELAY_PORT ${DD}auth ${DD}band $BANDWIDTH \
+	     #${DD}fwd $rfile ${DD}rhost $ARCHIVE_HOST ${DD}rport $ARCHIVE_PORT  ${DD}dest $dfile 
+ 
+	    if (${?ARCHIVE_DEST}) then
+		set dfile = $ARCHIVE_DEST/$dfile 
+	    endif
+
+	    $DEPLOY_BIN/sfx_client $ROUTE $rfile $ARCHIVE_DEST/$dfile 
+
+	    set ex = $status
+	  
+	    if ($ex == 0) then
+		echo "Transferred: $rfile $fs MBytes" >>& $LOGFILE
+		echo $rfile >>& $JOURNAL	
+		@ ct++
+		set tt = ` echo $tt $fs | awk '{print ($1+$2)}'`       	
+	    else
+		echo "Transfer $rfile failed with status: $ex " >>& $LOGFILE
+		@ ff++
+	    endif
+	endif
+
+   endif
+
+
+
+end
+
+if (! ${?test}) then
+    echo "" >>& $LOGFILE
+    echo "Run statistics" >>& $LOGFILE
+    echo "Total files: $cf " >>& $LOGFILE
+    echo "Files tranferred this run: $ct " >>& $LOGFILE
+    echo "Files skipped: $sk " >>& $LOGFILE
+    echo "Total transfer $tt Mbytes" >>& $LOGFILE
+    echo "Failed transfers: $ff ">>& $LOGFILE
+endif
+
+echo "Transfer run completed" >>& $LOGFILE

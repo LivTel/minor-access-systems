@@ -1,0 +1,143 @@
+
+Offline (Schools) Interface: Client application.
+
+Assuming that the CLASSPATH environment has been setup to include any required jar files
+and a JVM has been installed and is reachable by PATH environment.
+
+The client is started using the command:
+
+java [jvm options] OfflineClient [args]
+			   
+ Where args [defaults in brackets] include:
+			    
+ Mandatory.
+ ----------
+			   
+ @host <host>               : OCR Host name/address. [localhost]
+ @port <port>               : OCR port. [5555]
+ @xml-file <file>           : File containing the XML request.
+			   
+ Optional.
+ ---------
+			   
+ @log-file <file>           : File to log messages to.
+ @file-log-level <level>    : File log level (0-5) [0=off]
+ @console-log-level <level> : Console log level (0-5) [0=off]			   
+ @response-file <file>      : File to dump response to.
+ @stdout                    : Dump reponse to stdout (otherwise stderr).
+			   
+ Jvm options.
+ ------------
+
+ The only one likely to be used is:	
+		   
+ -Dcp.delim=<symbol> : Selects a different arg delimiter than @ . This will only
+                       be rquired if some argument includes this symbol in it.
+                       DO NOT use - as a delimiter as it is used within parameters.
+ 		   
+Note: If a console log is used then this goes to stderr. If you have not selected 
+stdout for response then your response goes to stderr also. 
+	
+Examples.
+---------
+
+1)     java OfflineClient @host ocr @port 5678 @xml-file ./request1.xml
+
+       A bog-standard call to send the contents of request1.xml in the current directory 
+       i.e. where this is running.
+
+
+2)     java OfflineClient @host 192.101.102.34 @port 5678 @xml-file 15aug2003/request2.xml
+
+       Another  bog-standard call to send the contents of request2.xml in directory 15aug2003
+       relative to current directory.
+
+
+3)     java OfflineClient @host ocr @port 5678 @xml-file /reqs/request3.xml @stdout > /replies/reply3.txt
+
+       Contents of request3.xml in directory /reqs is sent. Response is output to stdout and the 
+       redirection captures this to /replies/rep3.txt
+
+
+4)     java OfflineClient @host ocr @port 5678 @xml-file req4.xml @console-log-level 3 @response-file res4.txt
+
+       Here the log will be directed to stderr along with the response so directing stderr to a file will
+       contain both. Stdout is not used so output could have been captured from here to a file with the
+       @stdout option and a redirect. However a response file res4.txt will have just the response in it.
+
+
+5)     java -Dcp.delim=# OfflineClient #host ocr #port 5678 #xml-file req@5.xml
+
+       Changed the arg delimiter so the file could have an @ in it -- weird !
+
+
+6)     java -Dcp.delim=- OfflineClient -host ocr -port 5678 -xml-file req6.xml
+
+       This will throw a wobbly due to the choice of delimiter.
+
+
+Mostly you will want to call this with just the xml-file changing between calls. The script 'ocrclient'
+or something similar should be used - it sets up relevant CLASSPATH information. It will almost certainly need 
+tweeking in order to work.
+
+
+
+
+Error codes.
+------------
+
+Error response codes by subsystem.
+
+
+ OSS Proxy server error codes.
+------------------------------
+
+ERROR_BASE = 710800
+
+Most of these indicate some form of communications or
+server configuration problem and hence usually the best
+strategy is to try again later.
+
+Indicates that the OSS Server would not accept connections.
+710801 REMOTE_CONNECTION_REFUSED
+
+Indicates that the OSS Server cannot be reached (config or DNS problem).
+710802 REMOTE_HOST_UNREACHABLE ;
+    
+Indicates a DNS or config problem typically.
+710803 REMOTE_HOST_UNKNOWN
+    
+Indicates a problem opening a TCP socket connection to the OSS .
+710804 REMOTE_SOCKET_ERROR
+
+Indicates a general TCP problem.
+710805 REMOTE_IO_ERROR
+    
+Indicates some very bad i/o problem.
+710806 REMOTE_SOCKET_NO_SOCKET
+    
+Indicates a problem opening the output stream to the OSS.
+710807 REMOTE_SOCKET_OSTREAM_ERROR
+    
+Indicates a serialization version problem.
+710808 REMOTE_SOCKET_ISTREAM_SERIALIZATION_ERROR
+    
+Indicates a problem opening the input stream from the OSS.
+710809 REMOTE_SOCKET_ISTREAM_ERROR
+    
+Indicates that the request from the client was not read.
+710810 NO_READ_COMMAND
+    
+Indicates that the request could not be forwarded.
+710820 NO_SEND_COMMAND
+
+Indicates a surprising response class from the OSS.
+710830 UNEXPECTED_RESPONSE_CLASS
+    
+Indicates no valid response class was forthcoming from the OSS.
+710840 NO_READ_RESPONSE
+    
+
+
+
+

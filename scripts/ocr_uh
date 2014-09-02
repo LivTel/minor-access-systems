@@ -1,0 +1,40 @@
+#!/bin/csh
+
+# -----------------------------------
+# Offline Control Relay (OCR) client.  
+# -----------------------------------
+
+# Check the request file.
+if (${#argv}  < 1) then
+    echo "Usage: ocr_uh <xml-request-file>"
+    exit 2
+endif
+
+if (! -e $1) then
+    echo "No such file $1 "
+    exit 3
+endif
+
+# Common libraries
+setenv CLASSPATH
+foreach file (ngat/*.jar)
+    echo $CLASSPATH | grep $file >& /dev/null
+    if ($status != 0) then
+	setenv CLASSPATH ${CLASSPATH}:$file
+    endif
+end
+
+setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/lib
+
+setenv CLASSPATH ${CLASSPATH}:class
+
+set EGD = -Djava.security.egd=file:/dev/urandom
+
+set KS = -Djavax.net.ssl.keyStore=certs/hawrtoc.private
+set KP = -Djavax.net.ssl.keyStorePassword=hawrtocpw
+set TS = -Djavax.net.ssl.trustStore=certs/rti_servers.public
+
+java -DOCL $EGD $KS $KP $TS OfflineClient @secure @host ftnproxy @port 7940 \
+    @xml-file $1 @console-log-level 3
+
+

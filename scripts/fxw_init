@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# -------------------------------------------------------
+# Init launcher for: Secure File Transfer Watchdog (FXW).
+# -------------------------------------------------------
+
+. /occ/etc/deploy-bashrc
+
+if [ $# -ne 2 ]; then   
+    target=$DEPLOY_SYSTEM
+else
+    target=$2
+fi
+
+# Source function library.
+/etc/rc.d/init.d/functions
+
+DAT=`date -u +"%j_%H_%M"`
+FXW_CONSOLE_LOG_FILE=$DEPLOY_TMP/fxw_${target}.log
+
+$DEPLOY_ETC/log_roll $FXW_CONSOLE_LOG_FILE 40000 5 
+
+case "$1" in
+  start)
+	echo "Starting File Transfer Watchdog for ${target}, Log to: ${FXW_CONSOLE_LOG_FILE} "
+	$DEPLOY_BIN/fxw start $target 1>> ${FXW_CONSOLE_LOG_FILE} 2>&1 &
+	;;
+  stop)
+	echo "Shutting down File Transfer Watchdog for $target."
+	$DEPLOY_BIN/fxw stop $target 1>> ${FXW_CONSOLE_LOG_FILE} 2>&1 
+	;;
+  restart)
+	$0 stop	
+	echo "Restarting in 30 secs"
+	sleep 30
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start | stop | restart}"
+	exit 1
+esac
+
+exit 0

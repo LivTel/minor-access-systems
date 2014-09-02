@@ -1,0 +1,18 @@
+#!/bin/csh
+
+#
+# Generate a private key.
+#
+# Usage: gencert <name> <alias> <keystore> <dname> <pass>
+
+set NAME     = "$1"
+set ALIAS    = "$2"
+set KEYSTORE = "$3"
+set DNAME    = "$4"
+set PASS     = "$5"
+
+echo "Generating client public private key pair for $NAME using $ALIAS "
+echo "Keystore ${DIR}/$KEYSTORE DN is $DNAME using Pass $PASS "
+keytool -v -genkey -alias $ALIAS -keystore ${DIR}/$KEYSTORE -storetype JKS -keyalg rsa -dname "$DNAME" -storepass $PASS -keypass $PASS
+
+sleep 5

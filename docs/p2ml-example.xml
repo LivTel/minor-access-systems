@@ -1,0 +1,106 @@
+<p2ml:document version = "2.0">
+
+<!-- add a group to proposal NSO_Priority_5 -->
+
+  <add-group proposal = "NSO_Priority_5">
+
+    <group name = "frodo-test-X001" urgent = "false">
+
+       <constraints>
+          <!-- other constraints are available -->
+	  <solar-elev class = "ASTRO_TWILIGHT" />
+	  <lunar-elev class = "DARK" />
+	  <airmass max = "2.0" />
+	  <seeing class = "AVERAGE" />
+	  <extinction class = "PHOTOM" />
+          <lunar-distance min = "17.5" unit = "deg"/>
+       </constraints>
+   
+       <timing class = "monitor">
+         <period unit = "hour"> 3.0 </period>
+	 <window unit = "hour"> 1.5 </window>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <sequence>
+
+         <iterator name = "root">
+
+	     <slew>
+		<target> M87 </target>
+		<rotator mode = "cardinal" focal-plane = "RATCam" />			
+	     </slew>
+
+	     <inst name = "RATCam" />
+
+	     <autoguide mode = "ON" />
+
+	     <configure config = "RATCam:V" />
+	  
+             <multrun repeat = "6" unit = "Ms" exposure = "4000" />
+             
+	     <configure config = "RATCam:B" />
+
+             <multrun repeat = "6" unit = "secs" exposure = "400" />
+             
+	     <autoguide mode = "OFF"/>
+
+	     <offset ra-offset = "60" dec-offset = "-30" unit = "arcsec" mode = "absolute" />
+
+	     <acquire use = "RATCam" target = "FRODO" mode = "WCS_FIT" />
+
+
+	     <!-- A strange but neccessary step in the frodo acquisition to set the focus offset correctly before autoguiding -->
+
+             <configure config = "Red-HighRes" />
+
+	     <autoguide mode = "ON" />
+
+	     <branch name = "frodo-seq-1">	      
+	     
+		<red>
+		   <iterator name = "red" type = "single">
+
+		      <configure config = "Red-HighRes" />
+		                       
+                      <multrun repeat = "6" unit = "min" exposure = "40" />
+                      
+		      <configure config = "Red-LowRes" />
+	
+                      <multrun repeat = "6" unit = "sec" exposure = "30" />
+            
+		   </iterator>
+		</red>
+
+		<blue>
+		   <iterator name = "blue" type = "single">		   
+
+		      <configure config = "Blue-HighRes" />
+		      
+                      <arc source = "W" />
+		      
+                      <multrun repeat = "6" unit = "min" exposure = "4" />
+                      
+		      <configure config = "Blue-LowRes" />
+		      
+                      <multrun repeat = "6" unit = "milli" exposure = "400" />
+                      		      
+                      <lamp source = "Xe" />
+
+		   </iterator>
+		</blue>
+
+	     </branch>
+
+	     <autoguide mode = "OFF" />
+
+	  </iterator>
+
+       </sequence>
+
+    </group>
+
+  </add-group>
+
+</p2ml>

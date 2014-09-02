@@ -1,0 +1,14 @@
+#!/bin/csh
+
+# ---------------------------------------------
+# Environment for: RMI. 
+# ---------------------------------------------
+
+set NA_JAR   = /usr/local/tomcat/webapps/axis/WEB-INF/lib/node_agent.jar
+
+echo $CLASSPATH | grep $NA_JAR > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${NA_JAR}
+endif
+
+

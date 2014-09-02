@@ -1,0 +1,26 @@
+#!/bin/csh
+
+set REMOTE_HOST = 192.168.1.10
+#set REMOTE_HOST = tcc
+set REMOTE_PORT = 13021
+set LOCAL_PORT  = 13022
+
+set TCS_ID      = 17
+set RCS_ID      = 18
+
+set sn = 66666
+if (${#argv} == 1) set sn = $1
+
+set ASTRO = -Dastrometry.impl\=ngat.astrometry.TestCalculator
+
+source setup
+source class_setup
+
+setenv CLASSPATH ${CLASSPATH}:/occ/rcs
+
+set JAVA = $JAVA_HOME/bin/java
+
+echo "Starting..using Java VM "
+$JAVA -version
+
+$JAVA -DCIL ngat.rcs.CilTest $REMOTE_HOST $LOCAL_PORT $REMOTE_PORT $sn $RCS_ID $TCS_ID 

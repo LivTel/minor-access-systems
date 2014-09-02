@@ -1,0 +1,11 @@
+#!/bin/csh
+
+set MAX = $1
+
+set PF = /proc/uptime
+
+set uts = `cat $PF | awk '{print int($1)}'`
+
+if ( $uts > $MAX ) then
+	echo "Needs a reboot: up for $uts seconds"
+endif

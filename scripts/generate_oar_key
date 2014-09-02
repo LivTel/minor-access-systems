@@ -1,0 +1,30 @@
+#!/bin/csh
+#
+# -----------------------------------------------------------------------------
+# PCR SSL OAR Server Certificate generator.
+# -----------------------------------------------------------------------------
+#
+
+echo "---------------------------------------------------"
+echo "Generating OAR Server Certificate"
+echo "---------------------------------------------------"
+echo
+
+#----------------------------------------------------
+# Generate OAR server public/private key pair.
+#-----------------------------------------------------
+echo "Generating OAR server public private key pair"
+keytool -v -genkey -validity 180 -alias oarprivate -keystore oar.private -keysize 2048 \
+    -storetype JKS -keyalg rsa -dname "CN=proxy, OU=proxy-host, O=oar, L=oar, S=state, C=ctry"\
+    -storepass geronimo -keypass geronimo
+
+
+#-----------------------------------------------------------------------------------
+# Export OAR key into  public keystore.
+#-----------------------------------------------------------------------------------
+echo "Generating OAR Server public key file"
+
+#keytool -export -alias oarprivate -keystore oar.private -file temp.key -storepass geronimo
+#keytool -import -noprompt -alias oarpublic -keystore oar.public -file temp.key -storepass public
+#rm -f temp.key
+

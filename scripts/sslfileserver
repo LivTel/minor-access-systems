@@ -1,0 +1,41 @@
+#!/bin/csh
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/its_setup
+
+
+
+echo "SSLFileTransfer Server startup."
+
+# These should work.
+set KEYSTORE     = "certs/pca.private"
+set TRUSTSTORE   = "certs/rti_servers.public"
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE"
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 2
+endif
+
+# This is the port for the server
+#set PORT = 6666
+set PORT = 7940
+
+# Just an ID for this test - you can run several of these as required.
+set ID = FTN_IMG_SERVER
+set APP = ngat.net.SSLFileTransfer
+
+set EGD = -Djava.security.egd=file:/dev/urandom
+#set EGD
+
+#set DEBUG = -Djavax.net.debug=all
+set DEBUG
+
+$JAVA -Dcpdelim=@ $DEBUG $DGE $APP @server @auth @id $ID @key $KEYSTORE @trust $TRUSTSTORE @port $PORT @band 3 @base /home/proxy/tmp

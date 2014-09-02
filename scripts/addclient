@@ -1,0 +1,14 @@
+#!/bin/csh
+
+#
+# Add a cert to a truststore.
+#
+echo Client is $1 uses O $2
+
+keytool -v -genkey -alias ${1}private -keystore keys/${1}.private -storetype JKS -keyalg rsa -dname "CN="${1}", OU=RTOC, O="${2}", L=Liverpool, S=Merseyside, C=UK" -storepass ${1}pw -keypass ${1}pw
+
+keytool -v -export -alias ${1}private -keystore keys/${1}.private -file temp.key -storepass ${1}pw
+
+keytool -v -import -noprompt -alias ${1}public -keystore keys/client.public -file temp.key -storepass public
+
+rm -f temp.key

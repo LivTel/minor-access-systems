@@ -1,0 +1,25 @@
+#!/bin/csh
+
+# --------------------------------------------------
+# OCR Development test script for local environment.
+# --------------------------------------------------
+
+set DEV_HOME  = /home/dev/bin
+set NGAT_HOME = $DEV_HOME/javalib
+
+set JAVA_HOME = /usr/java/j2sdk1.4.2
+set JAVA = $JAVA_HOME/bin/java
+
+setenv CLASSPATH .
+foreach file (${NGAT_HOME}/*.jar)
+	setenv CLASSPATH ${CLASSPATH}:$file
+end
+
+setenv CLASSPATH ${CLASSPATH}:$DEV_HOME/planetarium/java
+
+echo "Classpath is: $CLASSPATH "
+
+echo "Starting OCR server ( ${1} )"
+
+$JAVA -DOCR OfflineRelay ../config/ocr_${1}.properties
+

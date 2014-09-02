@@ -1,0 +1,47 @@
+#!/bin/csh
+
+
+
+echo "SSLFileTransfer Relay startup."
+
+# These should work.
+set KEYSTORE     = "test/itr.private"
+set TRUSTSTORE   = "test/server.public"
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE"
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 2
+endif
+
+# This is the port for the server to run on. 
+set PORT = 6666
+
+# Just an ID for this server - you can run several of these as required.
+set ID = ARI_ITR_RELAY
+
+# This is the directory where we want images to be placed.
+# If this flag is not set then the Server will use the current directory
+# i.e. where this is running from. 
+#
+#!!!!!!!!! SET THIS AS REQUIRED !!!!!!!!!!
+set BASE = /space/home/snf
+
+# Get the environment settings.
+source ./setup_itr_test
+
+set APP = ngat.net.SSLFileTransfer
+
+# Command line delimeter - use any symbol which wont appear in either a filename
+# or the ID etc.
+set DD = @
+
+java -Dcpdelim=${DD} $APP ${DD}server ${DD}relay ${DD}id $ID ${DD}key $KEYSTORE ${DD}trust $TRUSTSTORE ${DD}port $PORT ${DD}auth ${DD}base $BASE
+
+

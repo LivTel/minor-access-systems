@@ -1,0 +1,24 @@
+<p2ml>
+   <request>
+      <action> add-inst-config </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/amn/NSO_Priority_1 </value>
+         </param>
+	 
+	 <param name = "instrument-config">
+	    <value>         
+               <inst-config ic-id = "Test2-Thor-1-1024" type="io:thor">	        
+		     <description>THOR 1x1 binning 1024 window </description>
+	             <gain>10</gain>
+		     <detector>
+		       <xbin> 1 </xbin>
+		       <ybin> 1 </ybin>
+		     </detector>
+		  </inst-config>	
+            </value>
+         </param>
+
+   </request>
+</p2ml>
+

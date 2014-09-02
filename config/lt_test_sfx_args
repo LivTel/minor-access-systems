@@ -1,0 +1,24 @@
+# --------------------------------------------------------
+# Setup for: Secure File Transfer Server (SFX): (LT TOFS)
+# --------------------------------------------------------
+ 
+set ID          = LT_TEST
+set PID         = XFERTEST
+ 
+set KEYSTORE    = $SFX_CERTS/itr.private
+set TRUSTSTORE  = $SFX_CERTS/server.public
+set KEYPASS     = geronimo
+ 
+set PORT        = 7654
+ 
+set SERVER      = @server
+set RELAY
+set AUTH        = @auth
+set BASE        = /occ/tmp
+ 
+# Future Enhancements
+ 
+set LOG         = 3
+set CONSOLE     = 3
+set SEE         = @see-all
+set ACCESS      = "@no-put"

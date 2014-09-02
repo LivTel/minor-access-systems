@@ -1,0 +1,89 @@
+#!/bin/csh
+#
+# -----------------------------------------------------------------------------
+# PCR SSL (Single-Client/Interactive) Certificate generator.
+# -----------------------------------------------------------------------------
+#
+# Edit the appropriate client DN(s). 
+#
+# The Organisation (O) field of the client DN is curently used by the POS/PCA
+# to determine the identity of the RTOC and must be agreed with the TMC.
+#
+# Otherwise, Edit the client (and server) DN fields as appropriate.
+#
+#-----------------------------------------------------------------------------
+#
+
+# Usage: generate_p2g_cert <clientID> <pass>
+
+if (${#argv} < 2) then
+    echo "Usage: generate_p2g_cert <clientID> <pass>"
+    exit 1
+endif
+
+set cid  = $1
+set pass = $2
+
+echo "---------------------------------------------------"
+echo "Generating single-client P2G Certificate for: $cid "
+echo "---------------------------------------------------"
+echo
+
+set unit = ""
+while ($unit == "")
+    printf "%bEnter Client's User Class (admin/rtoc/pi/coi etc): "
+    set unit = "$<"
+end
+
+set org = ""
+while ($org == "")
+    printf "%bEnter Client's Organization : "
+    set org = "$<"
+end
+
+set loc = ""
+while ($loc == "")
+    printf "%bEnter Location : "
+    set loc = "$<"
+end
+
+set state = ""
+while ($state == "")
+    printf "%bEnter State/County : "
+    set state = "$<"
+end
+
+set ctry = ""
+while ($ctry == "")
+    printf "%bEnter Country/Abbrv : "
+    set ctry = "$<"
+end
+
+
+#--------------------------------------------------------------------------------
+# Generate client public/private key pair into private keystore for P2GUIs.
+#--------------------------------------------------------------------------------
+
+echo "Generating client public private key pair for P2G Client: $cid"
+keytool -v -genkey -validity 180 -alias ${cid}private -keystore ${cid}.private \
+  -storetype JKS -keyalg rsa -dname "CN=$cid, OU=$unit, O=$org, L=$loc, S=$state, C=$ctry" \
+  -storepass $pass  -keypass $pass
+
+
+#---------------------------------------------------------------------
+# Export RTOC client public keys and import into RTOC public keystore.
+#---------------------------------------------------------------------
+echo "Generating New P2G Clients client public key file"
+
+set dd = `date -u "+%Y%m%d_%H%M"`
+
+if (-e p2g.public) then
+    cp -v /occ/deploy/p2g.public /occ/deploy/p2g.public.$dd
+endif
+
+echo "Generating public key $cid "
+keytool -v -export -alias ${cid}private -keystore ${cid}.private -file temp.key -storepass $pass
+keytool -v -import -noprompt -alias ${cid}public -keystore /occ/deploy/p2g.public -file temp.key -storepass public
+rm -f temp.key
+
+echo "** Imported client's key into global P2G Client Public keystore: (/occ/deploy/p2g.public) --> Install this at all OARs"

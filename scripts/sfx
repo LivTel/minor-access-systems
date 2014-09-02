@@ -1,0 +1,109 @@
+#!/bin/csh
+
+# ------------------------------------------------
+# Launcher for: Secure File Transfer Server (SFX).
+# ------------------------------------------------
+
+if (${#argv} < 2) then
+    echo "Usage: sfx ( start | stop ) <model> "
+    exit 1
+endif
+
+# Generic environment setup.
+source /opt/ngat/etc/cshrc
+
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/util_setup
+source $DEPLOY_BIN/sfx_setup
+
+# Note: sfx_setup and util_setup link different env vars to same locations
+
+set model = $2
+
+# Add arg list.
+source $UTIL_CONFIG/${model}_sfx_args
+
+# Check certificates here......scripts/check_cert $KEY etc
+# Select the certificates: (these can be relative to: UTIL_HOME).
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE "
+    exit 2
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE "
+    exit 3
+endif
+
+set PID = $DEPLOY_TMP/sfx_${model}.pid
+
+switch ($1)
+
+    case stop:
+
+	echo "SSL File Transfer Server: (${model}) stopping"
+	
+	if (! -e $PID) then
+	    echo "Cannot locate a PID file: $PID "
+	    exit 1
+	endif
+	set AID = `cat $PID` 
+    
+	if ($AID == "") then
+	    echo "$PID does not contain a valid PID for the SFX"
+	    exit 2
+	endif
+
+	set BID = `ps -ef | grep $AID | awk '{if ($3 == '$AID') print $2}'`
+	echo SFX Watchdog process is $AID ..Killing with SIG_KILL
+	kill -9 $AID  
+	echo SFX JVM Process is      $BID ..Killing with SIG_KILL
+	kill -9 $BID
+
+	rm -f $PID
+
+	breaksw
+
+    case start:
+
+	echo "SSL File Transfer Server: (${model}) starting"
+
+	echo $$ > $PID
+	
+	set APP = ngat.net.SSLFileTransfer
+
+	set EGD = -Djava.security.egd=file:/dev/urandom
+	#set EGD
+
+	#set DEBUG = -Djavax.net.debug=all
+	set DEBUG
+
+	set mexit = 0
+
+	# JVM params, alternative versions are commented out.
+	set INSEC  = "-Dsecure.incoming"
+	#set INSEC
+
+	set OUTSEC = "-Dsecure.outgoing"
+	#set OUSEC
+
+	set THREAD = "-Dsingle.threaded"
+	#set THREAD
+
+	$JAVA -DSFX -Dcpdelim=@ $DEBUG $EGD $INSEC $OUTSEC $THREAD $APP \
+		@id $ID $SERVER $RELAY $AUTH  @port $PORT @base $BASE \
+		@key $KEYSTORE @trust $TRUSTSTORE @pass $KEYPASS \
+		@log-level 3 @con-log-level 3
+	
+	set mexit = $status 
+
+	echo "SFX (${model}) Process exited with status $mexit"
+
+	/bin/rm -f $PID
+
+	breaksw
+
+endsw

@@ -1,0 +1,11 @@
+#!/bin/csh
+
+# ---------------------------------------------------
+# Environment for: Secure File Transfer Server (SFX).
+# ---------------------------------------------------
+
+set SFX_HOME    = $DEPLOY_HOME/misc
+set SFX_CONFIG  = $SFX_HOME/config
+set SFX_SCRIPTS = $SFX_HOME/scripts
+set SFX_CERTS   = $SFX_HOME/certs
+

@@ -1,0 +1,17 @@
+#!/bin/csh
+
+# -----------------------------------------
+# Args list for Image Transfer Relay (FTN).
+# -----------------------------------------
+
+set DD    = @
+
+set ID    = FTN_ITR
+set PORT  = 6666
+set KEY   = $ITR_CERTS/itr.private
+set TRUST = $ITR_CERTS/server.public
+set BASE  = $ITR_TMP
+
+set SERVER = ${DD}server
+set RELAY  = ${DD}relay
+set AUTH   = ${DD}auth

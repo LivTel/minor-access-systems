@@ -1,0 +1,29 @@
+#!/bin/csh
+
+# --------------------------------------------------------------
+# Config for: Log Archive Transfer (LAX): LT_OBSERVE
+# --------------------------------------------------------------
+
+# Logging info.
+set LAX_LOG_MAX 	= 30000
+set LAX_LOG_COUNT 	= 4
+
+# Search pattern.
+set PATTERN 	        = "obs_log*"
+
+# Transfer Journal DB
+set JOURNAL		= /occ/tmp/lax_lt.jdb
+
+# Where the logs are.
+set LOG_DIR		= /occ/logs/archive
+
+# Routing information
+set ROUTE		= lt_tmc_archive
+
+# What to do with it after xfer.
+set DISPOSAL		= DELETE_LATER
+
+set DELETE_AFTER       = 604800
+
+# Where it goes.
+set DEST_DIR		= observe

@@ -1,0 +1,4 @@
+#!/bin/csh
+
+#set SERVER_LIST = "lt_tofs"
+set SERVER_LIST

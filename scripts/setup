@@ -1,0 +1,33 @@
+#!/bin/csh
+
+# ---------------------------
+# Setup for MISC installation.
+# ---------------------------
+
+# Check for launch directory
+
+set LAN = /opt/ngat/bin
+set MISC_EXEC = /home/eng/proxy/misc/scripts
+
+if (! -e $LAN) then
+	echo "Launch directory: [ $LAN ] not found, you may need to run proxy_setup "
+	exit 1
+endif
+
+# PCR - Planetarium control relay
+/bin/cp -fv $MISC_EXEC/pcr $LAN/pcr
+/bin/cp -fv $MISC_EXEC/pcr_setup $LAN/pcr_setup
+/bin/cp -fv $MISC_EXEC/pcr_init $LAN/pcr_init
+
+# OCR - Offline (XML-based) control relay
+/bin/cp -fv $MISC_EXEC/ocr $LAN/ocr
+/bin/cp -fv $MISC_EXEC/ocr_setup $LAN/ocr_setup
+/bin/cp -fv $MISC_EXEC/ocr_init $LAN/ocr_init
+
+# OAR - Offline admin (phase2) relay
+/bin/cp -fv $MISC_EXEC/oar $LAN/oar
+/bin/cp -fv $MISC_EXEC/oar_setup $LAN/oar_setup
+/bin/cp -fv $MISC_EXEC/oar_init $LAN/oar_init
+
+echo "Done MISC setup - you may still need to"
+echo " - setup links in /etc/init.d /etc/rcN.d to the pcr_init script etc"

@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# --------------------------------------------------
+# Init Launcher for: SSL File Transfer Server (SFX).
+# --------------------------------------------------
+
+. /opt/ngat/etc/bashrc
+
+if [ $# -ne 2 ]; then   
+    target=$DEPLOY_SYSTEM
+else
+    target=$2
+fi
+
+
+# Source function library.
+/etc/rc.d/init.d/functions
+
+DAT=`date -u +"%j_%H_%M"`
+SFX_CONSOLE_LOG_FILE=$DEPLOY_TMP/sfx_${target}.log
+
+$DEPLOY_ETC/log_roll $SFX_CONSOLE_LOG_FILE 40000000 5 
+
+case "$1" in
+  start)
+	echo "Starting: SSL File Transfer Server ($target)."
+	echo "Logging to: " ${SFX_CONSOLE_LOG_FILE}
+	$DEPLOY_BIN/sfx start $target 1>> ${SFX_CONSOLE_LOG_FILE} 2>&1 &
+	;;
+  stop)
+	echo "Shutting down: SSL File Transfer Server ($target)."
+	$DEPLOY_BIN/sfx stop $target 1>> ${SFX_CONSOLE_LOG_FILE} 2>&1 
+	;;
+  restart)
+	$0 stop	
+	echo "Restarting in 30 secs"
+	sleep 30
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 { start | stop | restart }"
+	exit 1
+esac
+
+exit 0

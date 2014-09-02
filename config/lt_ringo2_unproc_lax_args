@@ -1,0 +1,30 @@
+#!/bin/csh
+
+# --------------------------------------------------------------
+# Config for: Log Archive Transfer (LAX): LT_RINGO2
+# --------------------------------------------------------------
+
+# Logging info.
+set LAX_LOG_MAX 	= 30000
+set LAX_LOG_COUNT 	= 4
+
+# Search pattern.
+set PATTERN 		= "p_?_20??????_*_1_*_0.fits.gz"
+
+# Transfer Journal DB
+set JOURNAL		= /occ/tmp/lax_lt.jdb
+
+# Where the logs are.
+set LOG_DIR		= /mnt/ringo2-image/log_archive
+
+# Routing information
+set ROUTE		= lt_tmc_archive
+
+# What to do with it after xfer.
+set DISPOSAL		= DELETE_LATER
+
+# How long after xfer to delete (sec).
+set DELETE_AFTER	= 400
+
+# Where it goes.
+set DEST_DIR		= inst_logs/ringo2

@@ -1,0 +1,26 @@
+<p2ml>
+   <request>
+      <action> add-inst-config </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/amn/NSO_Priority_1 </value>
+         </param>
+	 
+	 <param name = "instrument-config">
+	    <value>         
+               <inst-config ic-id = "Test-IO-2-B-ND1.5-clear" type="io:o">	        
+		     <description>O 2x2 binning, Bess-B </description>
+		     <filter>Bessell-B</filter>
+                     <lower-slide>ND1.5</lower-slide>
+                     <upper-slide>clear</upper-slide>
+		     <detector>
+		       <xbin> 2 </xbin>
+		       <ybin> 2 </ybin>
+		     </detector>
+		  </inst-config>	
+            </value>
+         </param>
+
+   </request>
+</p2ml>
+

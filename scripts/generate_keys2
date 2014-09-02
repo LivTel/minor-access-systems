@@ -1,0 +1,156 @@
+#!/bin/csh
+#
+# -----------------------------------------------------------------------------
+# Planetarium Control and Image transfer: SSL Certificate generator.
+# -----------------------------------------------------------------------------
+#
+# Edit the appropriate client DN(s). 
+#
+# For RTOC keys, The Organisation (O) field of the client DN is curently used 
+# by the POS/PCA to determine the identity of the RTOC and must be agreed 
+# with the TMC.
+#
+# Otherwise, Edit the client (and server) DN fields as appropriate.
+#
+#-----------------------------------------------------------------------------
+#
+
+# We should be run from the ITR or POS directory:
+
+if (${#argv} < 1) then
+    echo "Usage: generate_keys2 <dir> "
+    echo "Where <dir> is the directory to place the keys into."
+    exit 1
+endif
+
+set DIR = $1
+
+#--------------------------------------------------------------------------------
+# Generate client public/private key pair into private keystore for RTOC clients.
+#--------------------------------------------------------------------------------
+echo Generating client public private key pair for UK RTOC
+keytool -v -genkey -alias ukrtocprivate -keystore ${DIR}/ukrtoc.private -storetype JKS -keyalg rsa -dname "CN=UCW, OU=RTOC, O=UKRTOC, L=Cardiff, S=Wales, C=UK" -storepass ukrtocpw -keypass ukrtocpw
+
+echo Generating client public private key pair for Australia RTOC
+keytool -v -genkey -alias ausrtocprivate -keystore ${DIR}/ausrtoc.private -storetype JKS -keyalg rsa -dname "CN=FT2, OU=RTOC, O=AUSRTOC, L=Siding Springs, S=NSW, C=Australia" -storepass ausrtocpw -keypass ausrtocpw
+
+echo Generating client public private key pair for Hawaii RTOC
+keytool -v -genkey -alias hawrtocprivate -keystore ${DIR}/hawrtoc.private -storetype JKS -keyalg rsa -dname "CN=FT1, OU=RTOC, O=HAWRTOC, L=Haleakala, S=Maui, C=Hawaii" -storepass hawrtocpw -keypass hawrtocpw
+
+echo Generating client public private key pair C1
+keytool -v -genkey -alias client1private -keystore ${DIR}/client1.private -storetype JKS -keyalg rsa -dname "CN=Dev 1, OU=RTOC, O=ARI-DEV1, L=Liverpool, S=Merseyside, C=UK" -storepass client1pw -keypass client1pw
+
+echo Generating client public private key pair C2
+keytool -v -genkey -alias client2private -keystore ${DIR}/client2.private -storetype JKS -keyalg rsa -dname "CN=Dev 2, OU=RTOC, O=ARI-DEV2, L=Liverpool, S=Merseyside, C=UK" -storepass client2pw -keypass client2pw
+
+
+#--------------------------------------------------------------------------------
+# Generate client public/private key pair into private keystore for WWWIS clients.
+#--------------------------------------------------------------------------------
+echo Generating client public private key pair for UK WWWIS
+keytool -v -genkey -alias ukwwwisprivate -keystore ${DIR}/ukwwwis.private -storetype JKS -keyalg rsa -dname "CN=UCW, OU=RTOC, O=UK_WWWIS, L=Cardiff, S=Wales, C=UK" -storepass ukwwwispw -keypass ukwwwispw
+
+echo Generating client public private key pair for Hawaii WWWIS
+keytool -v -genkey -alias hawaiiwwwisprivate -keystore ${DIR}/hawaiiwwwis.private -storetype JKS -keyalg rsa -dname "CN=UCW, OU=RTOC, O=HAW_WWWIS, L=Haleakala, S=Maui, C=Hawaii" -storepass hawaiiwwwispw -keypass hawaiiwwwispw
+
+echo Generating client public private key pair for Australia WWWIS
+keytool -v -genkey -alias auswwwisprivate -keystore ${DIR}/auswwwis.private -storetype JKS -keyalg rsa -dname "CN=AUS, OU=RTOC, O=AUS_WWWIS, L=Siding Springs, S=NSW, C=Australia" -storepass auswwwispw -keypass auswwwispw
+
+echo Generating client public private key pair for ARI TEST WWWIS
+keytool -v -genkey -alias ariwwwisprivate -keystore ${DIR}/ariwwwis.private -storetype JKS -keyalg rsa -dname "CN=ARI, OU=RTOC, O=ARI_WWWIS, L=Liverpool, S=merseyside, C=UK" -storepass ariwwwispw -keypass ariwwwispw
+
+
+#----------------------------------------------------
+# Generate PCA(scope) server public/private key pair.
+#----------------------------------------------------
+echo "Generating PCA(scope) server public private key pair"
+
+keytool -v -genkey -alias pcaprivate -keystore ${DIR}/pca.private -storetype JKS -keyalg rsa -dname "CN=TMC, OU=FTN_OCC, O=Faulkes, L=Cardiff, S=Wales, C=UK" -storepass geronimo -keypass geronimo
+
+#---------------------------------------------
+# Generate itr server public/private key pair.
+#---------------------------------------------
+echo Generating POS Image Transfer Relay server public private key pair
+
+keytool -v -genkey -alias itrprivate -keystore ${DIR}/itr.private -storetype JKS -keyalg rsa -dname "CN=TMC, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" -storepass geronimo -keypass geronimo
+
+#----------------------------------------------------
+# Generate PCR(relay) server public/private key pair.
+#-----------------------------------------------------
+echo Generating POS Control Relay server public private key pair
+keytool -v -genkey -alias pcrprivate -keystore ${DIR}/pcr.private -storetype JKS -keyalg rsa -dname "CN=FTN, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" -storepass geronimo -keypass geronimo
+
+#---------------------------------------------------------------------
+# Export RTOC client public keys and import into RTOC public keystore.
+#---------------------------------------------------------------------
+echo Generating RTOC client public key files
+
+keytool -v -export -alias client1private -keystore ${DIR}/client1.private -file temp.key -storepass client1pw
+keytool -v -import -noprompt -alias client1public -keystore ${DIR}/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias client2private -keystore ${DIR}/client2.private -file temp.key -storepass client2pw
+keytool -v -import -noprompt -alias client2public -keystore ${DIR}/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias ukrtocprivate -keystore ${DIR}/ukrtoc.private -file temp.key -storepass ukrtocpw
+keytool -v -import -noprompt -alias ukrtocpublic -keystore ${DIR}/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias ausrtocprivate -keystore ${DIR}/ausrtoc.private -file temp.key -storepass ausrtocpw
+keytool -v -import -noprompt -alias ausrtocpublic -keystore ${DIR}/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias hawrtocprivate -keystore ${DIR}/hawrtoc.private -file temp.key -storepass hawrtocpw
+keytool -v -import -noprompt -alias hawrtocpublic -keystore ${DIR}/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+#-----------------------------------------------------------------------
+# Export WWWIS client public keys and import into WWWIS public keystore.
+#-----------------------------------------------------------------------
+echo Generating WWWIS client public key file
+
+keytool -v -export -alias ukwwwisprivate -keystore ${DIR}/ukwwwis.private -file temp.key -storepass ukwwwispw
+keytool -v -import -noprompt -alias ukwwwispublic -keystore ${DIR}/wwwis.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias auswwwisprivate -keystore ${DIR}/auswwwis.private -file temp.key -storepass auswwwispw
+keytool -v -import -noprompt -alias ausrtocpublic -keystore ${DIR}/wwwis.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias hawaiiwwwisprivate -keystore ${DIR}/hawaiiwwwis.private -file temp.key -storepass hawaiiwwwispw
+keytool -v -import -noprompt -alias hawaiiwwwispublic -keystore ${DIR}/wwwis.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -v -export -alias ariwwwisprivate -keystore ${DIR}/ariwwwis.private -file temp.key -storepass ariwwwispw
+keytool -v -import -noprompt -alias ariwwwispublic -keystore ${DIR}/wwwis.public -file temp.key -storepass public
+rm -f temp.key
+
+#------------------------------------------------------------------------------------------------
+# Export PCR Server public keys into PCR public keystore. (Do this for each scope RTOC can see).
+#------------------------------------------------------------------------------------------------
+echo Generating PCR public key file
+keytool -v -export -alias pcrprivate -keystore ${DIR}/pcr.private -file temp.key -storepass geronimo
+keytool -v -import -noprompt -alias pcrpublic -keystore ${DIR}/pcr.public -file temp.key -storepass public
+rm -f temp.key
+
+#------------------------------------------------------------------------------------------------
+# Export Image Transfer Relay public keys into ITR public ((Do this for each scope RTOC can see).
+#------------------------------------------------------------------------------------------------
+echo Generating ITR Server public key file
+keytool -v -export -alias itrprivate -keystore ${DIR}/itr.private -file temp.key -storepass geronimo
+keytool -v -import -noprompt -alias itrpublic -keystore ${DIR}/itr.public -file temp.key -storepass public
+rm -f temp.key
+
+#------------------------------------------------------------------
+# Export PCA Server public key and import it into public keystore.
+#------------------------------------------------------------------
+echo Generating PCA server public key file
+keytool -v -export -alias pcaprivate -keystore ${DIR}/pca.private -file temp.key -storepass geronimo
+keytool -v -import -noprompt -alias pcapublic -keystore ${DIR}/pca.public -file temp.key -storepass public
+rm -f temp.key
+
+echo "** DONE **"
+
+
+

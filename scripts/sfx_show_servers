@@ -1,0 +1,16 @@
+#!/bin/csh
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/sfx_setup
+
+# sfx_show_routes 
+
+echo "SFX Server Models"
+
+foreach route ($SFX_CONFIG/*_sfx_args)
+	set rt  = ${route:t}
+	set rid = `cat $route | grep " ID" | cut -d"=" -f2`
+	printf "%b  - $rt \t\t $rid \n"
+end
+

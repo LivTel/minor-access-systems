@@ -1,0 +1,50 @@
+#!/bin/csh
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+
+echo SSLFileTransfer Server startup.
+
+# These should work.
+set KEYSTORE     = "certs/itr.private"
+set TRUSTSTORE   = "certs/server.public"
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE"
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 2
+endif
+
+# where the server is
+#set HOST = 131.251.45.80
+#set HOST = localhost
+#set HOST = 132.160.98.239
+#set HOST = ftnproxy
+set HOST = kilo
+
+# This is the port for the server
+set PORT = 6666
+#set PORT = 7940
+
+# Just an ID for this test - you can run several of these as required.
+set ID = ARI_IMG_PUSH
+set APP = ngat.net.SSLFileTransfer
+
+set EGD = -Djava.security.egd=file:/dev/urandom
+#set EGD
+
+#set DEBUG = -Djavax.net.debug=all
+set DEBUG
+
+echo "File: $1 Send to: $1:t "
+
+set FILE = $1:t
+
+$JAVA -Dcpdelim=@ $DEBUG $EGD $APP @client @id $ID @key $KEYSTORE @kpass geronimo @trust $TRUSTSTORE @host $HOST @port $PORT @band 3 @put $1 @remote $FILE
+

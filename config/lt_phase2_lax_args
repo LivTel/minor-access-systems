@@ -1,0 +1,30 @@
+#!/bin/csh
+
+# --------------------------------------------------------------
+# Config for: Log Archive Transfer (LAX): LT_Phase2
+# --------------------------------------------------------------
+
+# Logging info.
+set LAX_LOG_MAX 	= 30000
+set LAX_LOG_COUNT 	= 4
+
+# Search pattern.
+set PATTERN 		= "phase2-LT_COMM-2009*"
+
+# Transfer Journal DB
+set JOURNAL		= /occ/tmp/lax_lt.jdb
+
+# Where the logs are.
+set LOG_DIR		= /home/occ/backup
+
+# Routing information
+set ROUTE		= lt_tmc_archive
+
+# What to do with it after xfer.
+set DISPOSAL		= DELETE_LATER
+
+# When to purge
+set DELETE_AFTER        = 604800
+
+# Where it goes.
+set DEST_DIR		= phase2

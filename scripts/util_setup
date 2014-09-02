@@ -1,0 +1,10 @@
+#!/bin/csh
+
+# ---------------------------------------------------
+# Environment for: Generic Utilities.
+# ---------------------------------------------------
+
+set UTIL_HOME    = $DEPLOY_HOME/misc
+set UTIL_CONFIG  = $UTIL_HOME/config
+set UTIL_SCRIPTS = $UTIL_HOME/scripts
+set UTIL_CERTS   = $UTIL_HOME/certs

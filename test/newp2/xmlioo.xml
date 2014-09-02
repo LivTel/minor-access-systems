@@ -1,0 +1,49 @@
+<p2ml version = "2.0">
+
+<!-- add a group to proposal NSO_Priority_5 -->
+
+ <add-group proposal = "NSO_Priority_5">
+
+    <group name = "iootest-2" urgent = "false">
+
+       <constraints>
+	  <solar-elev class = "NIGHT" />
+	  <lunar-elev class = "DARK" />
+	  <airmass max = "2.0" />
+       </constraints>
+   
+       <timing class = "monitor">
+         <period unit = "hour"> 3.0 </period>
+	 <window unit = "hour"> 1.5 </window>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <sequence>
+
+       <iterator name = "root">
+
+	     <slew>
+		<target> m57 </target>
+		<rotator mode = "cardinal" angle = "65.0" focal-plane="RATCAM"/>			
+	     </slew>
+
+	     <inst name = "IO:O"/>
+
+             <beam-steer upper = "Clear" lower = "RedBlue"/>
+
+             <focus-control name = "IO:O"/>
+
+	     <configure config = "Test-IOO-2-B"/>
+
+	     <multrun repeat = "6" exposure = "300" unit = "sec"/>
+
+	     </iterator>
+
+       </sequence>
+
+    </group>
+
+ </add-group>
+
+</p2ml>

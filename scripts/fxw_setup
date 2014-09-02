@@ -1,0 +1,8 @@
+#!/bin/csh
+
+# -----------------------------------------------------
+# Environment for: Secure File Transfer Watchdog (FXW). 
+# -----------------------------------------------------
+
+set FXW_HOME   = ${DEPLOY_HOME}/misc
+set FXW_CONFIG = $FXW_HOME/config

@@ -1,0 +1,30 @@
+<p2ml>
+   <request>
+      <action> add-rubbish </action>
+     
+         <param name = "proposal-id">
+            <value> /FTN_Phase2_001/FTN_OPS/test-user1/SN-Test1 </value>
+         </param>
+	 
+	 <param name = "source">
+	    <value>         
+               <source src-id = "star01">
+	          <src-common>
+		     <equinox> J2000.0 </equinox> 
+		     <epoch>   2000.0  </epoch>
+		     <frame>   FK5     </frame>
+		  </src-common>
+		  <extra-solar>
+		     <ra>              12:23:34.54 </ra>
+		     <dec>             20:34:12.67 </dec>
+		     <pm-ra>           0.3         </pm-ra>
+		     <pm-dec>          -0.04       </pm-dec>
+		     <parallax>        0.03        </parallax>
+		     <radial-velocity> 21.4        </radial-velocity> 
+		  </extra-solar>
+	       </source>
+            </value>
+         </param>
+   </request>
+</p2ml>
+

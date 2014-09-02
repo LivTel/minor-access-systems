@@ -1,0 +1,39 @@
+#!/bin/csh
+
+if (${#argv}  < 1) then
+    echo "Usage ocrclient <xml-request-file>"
+    exit 2
+endif
+
+if (! -e $1) then
+    echo "no such file $1 "
+    exit 3
+endif
+
+setenv CLASSPATH  /home/dev/bin/planetarium/java
+
+set LIB = /home/dev/bin/javalib
+
+setenv CLASSPATH ${CLASSPATH}:${LIB}/dev_lt.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_phase2.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_phase2_nonpersist.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_astrometry.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_util.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_util_logging.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_net.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_message_base.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_message_oss.jar
+
+set XD = /home/dev/bin/javalib
+
+#setenv CLASSPATH ${CLASSPATH}:${XD}/xml4j.jar
+setenv CLASSPATH ${CLASSPATH}:${XD}/xerces.jar
+setenv CLASSPATH ${CLASSPATH}:${XD}/xercesSamples.jar
+
+#echo "Classpath is: $CLASSPATH "
+set JAVA_HOME = /usr/java/j2sdk1.4.2
+set JAVA = $JAVA_HOME/bin/java
+
+$JAVA  OfflineClient @host 150.204.240.105 @port 9920 @xml-file $1 @console-log-level 3
+
+

@@ -1,0 +1,20 @@
+#!/bin/csh
+
+setenv CLASSPATH .
+
+set LIB = /home/dev/bin/javalib
+
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_phase2.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_phase2_nonpersist.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_astrometry.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_util.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_net.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_message_base.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_message_oss.jar
+
+setenv CLASSPATH ${CLASSPATH}:${LIB}/xml4j.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/xerces.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/xercesSamples.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/dev_lt.jar
+
+echo "Classpath is: $CLASSPATH "

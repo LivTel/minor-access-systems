@@ -1,0 +1,10 @@
+#!/bin/csh
+
+# --------------------------------------
+# Setup for: Image Transfer Relay (ITR).
+# --------------------------------------
+
+setenv ITR_HOME    ${DEPLOY_HOME}/itr
+setenv ITR_CONFIG  ${ITR_HOME}/config
+setenv ITR_SCRIPTS ${ITR_HOME}/scripts
+setenv ITR_CERTS   ${ITR_HOME}/certs

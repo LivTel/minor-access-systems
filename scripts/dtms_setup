@@ -1,0 +1,10 @@
+#!/bin/csh
+#
+# ------------------------
+# PEST Proxy router setup.
+# ------------------------
+#
+
+setenv PROXY_HOME ${DEPLOY_HOME}/p2relay
+setenv PROXY_CONFIG ${PROXY_HOME}/config
+

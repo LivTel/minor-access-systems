@@ -1,0 +1,8 @@
+#!/bin/csh
+
+# -----------------------------------------------
+# Environment for: Data Generator Watchdog (DGW). 
+# -----------------------------------------------
+
+set DGW_HOME   = ${DEPLOY_HOME}/rcs
+set DGW_CONFIG = $DGW_HOME/config

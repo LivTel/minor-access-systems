@@ -1,0 +1,30 @@
+<p2ml>
+   <request>
+      <action> replace-source </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/NSO_Priority_1 </value>
+         </param>
+	 
+	 <param name = "source">
+	    <value>         
+               <source src-id = "Star_19Aug09_001">
+	          <src-common>
+		     <equinox> J2000.0 </equinox> 
+		     <epoch>   2000.0  </epoch>
+		     <frame>   FK5     </frame>
+		  </src-common>
+		  <extra-solar>
+		     <ra>              5:5:5.55 </ra>
+		     <dec>             6:6:6.66 </dec>
+		     <pm-ra>           0.0         </pm-ra>
+		     <pm-dec>          0.0       </pm-dec>
+		     <parallax>        0.0        </parallax>
+		     <radial-velocity> 0.0        </radial-velocity> 
+		  </extra-solar>
+	       </source>
+            </value>
+         </param>
+   </request>
+</p2ml>
+

@@ -1,0 +1,120 @@
+#!/bin/csh
+#
+# -----------------------------------------------------------------------------
+# PCR SSL Certificate genrator.
+# -----------------------------------------------------------------------------
+#
+# Edit the appropriate client DN(s). 
+#
+# The Organisation (O) field of the client DN is curently used by the POS/PCA
+# to determine the identity of the RTOC and must be agreed with the TMC.
+#
+# Otherwise, Edit the client (and server) DN fields as appropriate.
+#
+#-----------------------------------------------------------------------------
+#
+
+# We should be run from the ITR or POS directory:
+
+
+#--------------------------------------------------------------------------------
+# Generate client public/private key pair into private keystore for RTOC clients.
+#--------------------------------------------------------------------------------
+echo Generating client public private key pair for UK RTOC
+keytool -v -genkey -alias ukrtocprivate -keystore certs/ukrtoc.private -storetype JKS -keyalg rsa -dname "CN=UCW, OU=RTOC, O=UKRTOC, L=Cardiff, S=Wales, C=UK" -storepass ukrtocpw -keypass ukrtocpw
+
+echo Generating client public private key pair for Australia RTOC
+keytool -v -genkey -alias ausrtocprivate -keystore certs/ausrtoc.private -storetype JKS -keyalg rsa -dname "CN=FT2, OU=RTOC, O=AUSRTOC, L=Siding Springs, S=NSW, C=Australia" -storepass ausrtocpw -keypass ausrtocpw
+
+echo Generating client public private key pair for Hawaii RTOC
+keytool -v -genkey -alias hawrtocprivate -keystore certs/hawrtoc.private -storetype JKS -keyalg rsa -dname "CN=FT1, OU=RTOC, O=HAWRTOC, L=Haleakala, S=Maui, C=Hawaii" -storepass hawrtocpw -keypass hawrtocpw
+
+echo Generating client public private key pair C1
+keytool -v -genkey -alias client1private -keystore certs/client1.private -storetype JKS -keyalg rsa -dname "CN=Dev 1, OU=RTOC, O=ARI-DEV1, L=Liverpool, S=Merseyside, C=UK" -storepass client1pw -keypass client1pw
+
+echo Generating client public private key pair C2
+keytool -v -genkey -alias client2private -keystore certs/client2.private -storetype JKS -keyalg rsa -dname "CN=Dev 2, OU=RTOC, O=ARI-DEV2, L=Liverpool, S=Merseyside, C=UK" -storepass client2pw -keypass client2pw
+
+#---------------------------------------------
+# Generate PCA(scope) server public/private key pair.
+#---------------------------------------------
+echo "Generating PCA(scope) server public private key pair"
+
+keytool -v -genkey -alias pcaprivate -keystore certs/pca.private -storetype JKS -keyalg rsa -dname "CN=TMC, OU=FTN, O=Faulkes, L=Liverpool, S=Merseyside, C=UK" -storepass geronimo -keypass geronimo
+
+#---------------------------------------------
+# Generate itr server public/private key pair.
+#---------------------------------------------
+echo Generating POS Image Transfer Relay server public private key pair
+
+keytool -v -genkey -alias pos_itrprivate -keystore certs/itr.private -storetype JKS -keyalg rsa -dname "CN=TMC, OU=FTN, O=Faulkes, L=Liverpool, S=Merseyside, C=UK" -storepass geronimo -keypass geronimo
+
+#----------------------------------------------------
+# Generate PCR(relay) server public/private key pair.
+#-----------------------------------------------------
+echo Generating POS Control Relay server public private key pair
+keytool -v -genkey -alias pos_conprivate -keystore certs/con.private -storetype JKS -keyalg rsa -dname "CN=ltccd1, OU=Instrument Development Group, O=Astrophysics Research Institute, L=Liverpool, S=Merseyside, C=UK" -storepass geronimo -keypass geronimo
+
+#---------------------------------------------------------------------
+# Export RTOC client public keys and import into RTOC public keystore.
+#---------------------------------------------------------------------
+echo Generating RTOC client public key files
+
+keytool -v -export -alias client1private -keystore certs/client1.private -file temp.key -storepass client1pw
+keytool -v -import -noprompt -alias client1public -keystore certs/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+echo "HERE COMES THE c1 cert"
+keytool -v -export -alias client1private -keystore certs/client1.private -rfc -storepass client1pw
+echo "THAT WAS THE c1 cert"
+
+keytool -export -alias client2private -keystore certs/client2.private -file temp.key -storepass client2pw
+keytool -import -noprompt -alias client2public -keystore certs/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -export -alias ukrtocprivate -keystore certs/ukrtoc.private -file temp.key -storepass ukrtocpw
+keytool -import -noprompt -alias ukrtocpublic -keystore certs/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -export -alias ausrtocprivate -keystore certs/ausrtoc.private -file temp.key -storepass ausrtocpw
+keytool -import -noprompt -alias ausrtocpublic -keystore certs/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -export -alias hawrtocprivate -keystore certs/hawrtoc.private -file temp.key -storepass hawrtocpw
+keytool -import -noprompt -alias hawrtocpublic -keystore certs/rtoc.public -file temp.key -storepass public
+rm -f temp.key
+
+#-----------------------------------------------------------------------------------
+# Export POS Control and Image Transfer Relay keys into RTI Servers public keystore.
+#-----------------------------------------------------------------------------------
+echo Generating RTI Servers public key file
+
+keytool -export -alias pos_conprivate -keystore certs/con.private -file temp.key -storepass geronimo
+keytool -import -noprompt -alias pos_conpublic -keystore certs/rti_servers.public -file temp.key -storepass public
+rm -f temp.key
+
+keytool -export -alias pos_itrprivate -keystore certs/itr.private -file temp.key -storepass geronimo
+keytool -import -noprompt -alias pos_itrpublic -keystore certs/rti_servers.public -file temp.key -storepass public
+rm -f temp.key
+
+#------------------------------------------------------------------------
+# Export Image Transfer Relay key into itr public keystore (for PCA use).
+#------------------------------------------------------------------------
+echo Generating ITR Server public key file
+
+keytool -export -alias pos_itrprivate -keystore certs/itr.private -file temp.key -storepass geronimo
+keytool -import -noprompt -alias pos_itrpublic -keystore certs/itr.public -file temp.key -storepass public
+rm -f temp.key
+#------------------------------------------------------------------
+# Export PCA Server  public key and import it into public keystore.
+#------------------------------------------------------------------
+echo Generating PCA server public key file
+
+keytool -export -alias pcaprivate -keystore certs/pca.private -file temp.key -storepass geronimo
+keytool -import -noprompt -alias pcapublic -keystore certs/server.public -file temp.key -storepass public
+rm -f temp.key
+
+echo "** DONE **"
+echo
+
+

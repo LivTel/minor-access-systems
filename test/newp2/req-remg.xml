@@ -1,0 +1,11 @@
+<p2ml>
+   <request>
+      <action> remove-group </action> 
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/FNT_OPS/FTN_OPS/NSO_Priority_3 </value>
+	 </param>    
+         <param name = "group-id">
+            <value> test3 </value>
+         </param>        
+   </request>
+</p2ml>

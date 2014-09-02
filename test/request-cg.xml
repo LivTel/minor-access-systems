@@ -1,0 +1,15 @@
+<p2ml>
+   <request>
+      <action> check-group </action> 
+
+         <param name = "proposal-id">
+            <value> /FTN_Phase2_001/FTN_OPS/test-user1/NSO_Priority_2 </value>
+	 </param>    
+
+         <param name = "group-id">
+            <value>  1438b000t000</value>
+         </param>  
+      
+   </request>
+</p2ml>
+

@@ -1,0 +1,50 @@
+#!/bin/csh
+
+if (${#argv} < 3) then
+    echo "Usage: sslfileclient <clientId> <key-file> <pass> <trust-file> <local-file> <remote-file>"
+    echo "           clientId    : The ID of this client."
+    echo "           key-file    : Private Keystore filepath."
+    echo "           pass        : Private Keystore password."
+    echo "           trust-file  : Server public keystore filepath."
+    echo "           local-file  : The file to send."
+    echo "           remote-file : Where to put it."
+   exit 1
+endif
+
+#set KEYSTORE   = "-Djavax.net.ssl.keyStore=keys/${1}.private"
+#set KEYPASS    = "-Djavax.net.ssl.keyStorePassword=${1}pw"
+#set TRUSTSTORE = "-Djavax.net.ssl.trustStore=keys/server.public"
+
+#set HOST = "LTocc.livjm.ac.uk"
+#set PORT = 6789
+
+
+set KEYSTORE     = "keys/server.private"
+set TRUSTSTORE   = "keys/client.public"
+
+if (-e $2) then
+    set KEYSTORE = $2
+else
+    echo "Could not find Keystore: $2"
+    exit 1
+endif
+
+set KEYPASS = $3
+
+if (-e $4) then
+    set TRUSTSTORE = $4
+else
+    echo "Could not find Truststore: $4"
+    exit 2
+endif
+
+set HOST = ltccd1
+set PORT = 8410
+
+source setup
+
+#java  ngat.net.SSLFileTransfer -client -id $1 -key $KEYSTORE -kpass $KEYPASS -trust $TRUSTSTORE -host $HOST -port $PORT -put $5 -remote $6
+
+java  ngat.net.SSLFileTransfer -client -id $1 -band 50 -key $KEYSTORE -kpass $KEYPASS -trust $TRUSTSTORE -host $HOST -port $PORT -fwd $5 -dest $6 -rhost 150.204.240.98 -rport 7777
+
+

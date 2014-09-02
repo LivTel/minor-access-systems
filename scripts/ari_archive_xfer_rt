@@ -1,0 +1,347 @@
+#!/bin/csh
+
+# --------------------------------------
+# Archive transfer script.
+# --------------------------------------
+#
+# Usage: archive_xfer [ test | send ] 
+#
+# e.g.   archive_xfer send       -- Send everything not already sent
+#
+# e.g.   archive_xfer test       -- Test for current night
+#
+# --------------------------------------
+#
+
+# Modified by SNF 09/11/2005
+# Added some new logging and tests for copy and zipping
+
+# Modified by JMM 10/3/05
+# The force mount rat-image had been coded as ratimage. Don't know why as it's worked fine
+# through Jan 2005 even though the last edit was 2004-12-10. Strange, but anyway I've
+# changed the code now.
+
+# Modified by RJS 2004-12-10
+# It is intended that this be run once per hour to bring the LT data back in bits throughout
+# the night. It will onlt transfer files older than one hour. This is intended to prevent
+# half written files from being transferred. If you take an exposure longer than one hour,
+# the data will be corrupted.
+
+# RJS
+# Original SNF version allowed you specify the day's data to be transferred. We now just 
+# transfer anything that has not already been done.
+
+# RJS
+# Write $PID into the lock file so that the script can tell if the lock file relates to a 
+# running process. If it doesn't, it can delete the lock file safely.
+
+#source /home/occ/.cshrc
+
+
+# RJS. Mount points have moved since this was written. I have commented it out.
+# RJS. Force mounting of rat-image if it is not already done.
+#mount | grep rat-image
+#if ( $status ) mount /mnt/rat-image
+#mount | grep rat-image
+#if ( $status ) mount /mnt/supir-image
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/archive_xfer_setup
+
+#echo "Start xfer script : " `date -u "+%Y-%m-%d %H:%M"`
+
+set nargs = ${#argv}
+
+switch (${#argv})
+  case 1:
+    set mode = $1
+    breaksw
+  default:
+    echo "Usage: archive_xfer [ test | send ] "
+    exit 1
+endsw
+
+# Declare name of lock file.
+set lock = /occ/tmp/xfer.lock
+
+if ( -e $lock ) then
+    ps -elf | grep xfer | grep `cat $lock`
+    if($? == 0) then
+      echo "By running ps it looks like a transfer is underway. Transfer aborted."
+      xterm -hold -bg yellow -fg blue -title "XFER Lock Conflict" -e "cat /occ/tmp/xfer-locked.txt"
+      exit 1
+    else
+      echo "By running ps it looks like this is an out of date lock file. It has been deleted and transfer will proceed."
+      rm $lock
+    endif
+endif
+
+# Create lock file
+echo $$ > $lock
+chmod 777 $lock
+if ($status != 0) then
+    echo "** Error: Unable to create lockfile: $lock "
+    exit 2
+endif
+
+onintr cleanup
+
+if ($mode == "test") then
+    set test
+endif
+
+
+set LOGFILE = $DEPLOY_TMP/ari_archive_xfer_rt.log
+set INFO    = $DEPLOY_TMP/ari_archive_xfer_list
+
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+endif
+
+if (! -e $INFO) then
+    touch $INFO
+endif
+
+
+echo "Starting Archive Transfer at: "`date -u "+%Y%m%d %H:%M:%S"` >>& $LOGFILE
+
+cd $ARCHIVE_HOME
+
+# Where are the data (NFS mount).
+set ARCHIVE_RATCAM_DIR = /mnt/rat-image
+set ARCHIVE_SUPIRCAM_DIR = /mnt/supir-image
+set ARCHIVE_RINGO_DIR = /mnt/grope-image        #### added
+
+# Where are the extra files.
+set ARCHIVE_EXTRA_LIST = $DEPLOY_TMP/archive_extra
+
+# These should work.
+set KEYSTORE     = "certs/pca.private"
+set TRUSTSTORE   = "certs/itr.public"
+set KEYPASS      = geronimo
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE" >>& $LOGFILE
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE" >>& $LOGFILE
+    exit 2
+endif
+
+# Check the certificate validity dates.
+#$ARCHIVE_HOME/scripts/check_cert $KEYSTORE $KEYPASS >>& $LOGFILE
+#$ARCHIVE_HOME/scripts/check_cert $TRUSTSTORE public >>& $LOGFILE
+
+# Just an ID for this server - you can run several of these as required.
+set ID = " ARCHIVE_XFER [ LT_OCC -> LT_TMC -> TMC_ARCHIVE ]"
+
+# The Proxy relay.
+set RELAY_HOST = 192.168.2.32
+set RELAY_PORT = 6666
+
+# The archive.
+set ARCHIVE_HOST = 192.168.3.192
+set ARCHIVE_PORT = 6666
+
+set BANDWIDTH = 5
+
+set APP = ngat.net.SSLFileTransfer
+
+# Command line delimeter - use any symbol which wont appear in either a filename
+# or the ID etc.
+set DD = @
+
+# Check number of files to xfer.
+
+if (! -e ${ARCHIVE_RATCAM_DIR}) then
+    echo "Cannot locate archive image dir: ${ARCHIVE_RATCAM_DIR}" >>& $LOGFILE
+    exit 3
+endif
+if (! -e ${ARCHIVE_SUPIRCAM_DIR}) then
+    echo "Cannot locate archive image dir: ${ARCHIVE_SUPIRCAM_DIR}" >>& $LOGFILE
+    exit 4
+endif
+#### added (next 4 lines)
+if (! -e ${ARCHIVE_RINGO_DIR}) then
+    echo "Cannot locate archive image dir: ${ARCHIVE_RINGO_DIR}" >>& $LOGFILE
+    exit 4
+endif
+
+# First peruse all the directories to see what nights' data are getting sent. Normally this will just 
+# be tonight, but no harm in checking for any left overs. The list of nights to consider gets written to ${DEPLOY_TMP}/transfer_datelist.
+# For each night in the ${DEPLOY_TMP}/transfer_datelist, we count the number of raw frames and write the number into $DEPLOY_TMP/${date_to_count}.filecount.
+# Lastly we actually send the $DEPLOY_TMP/${date_to_count}.filecount to archive so we can check we have everything.
+ls -1 ${ARCHIVE_RATCAM_DIR}/c_*_20??????_*_0.fits ${ARCHIVE_SUPIRCAM_DIR}/s_*_20??????_*_0.fits ${ARCHIVE_RINGO_DIR}/o_*_20??????_*_0.fits | cut -d"_" -f3 | sort | uniq > ${DEPLOY_TMP}/transfer_datelist 
+foreach date_to_count (`cat ${DEPLOY_TMP}/transfer_datelist`)
+  set cf = `ls -1 ${ARCHIVE_RATCAM_DIR}/c_*_${date_to_count}_*_0.fits ${ARCHIVE_SUPIRCAM_DIR}/s_*_${date_to_count}_*_0.fits ${ARCHIVE_RINGO_DIR}/o_*_${date_to_count}*_0.fits |& grep -v "No match" | wc -l`
+  echo $cf > $DEPLOY_TMP/${date_to_count}.filecount 
+  # This is a fudge SNF put in to see if SECURE was the problem leading to the connection hanging. It gets unset again straight after.
+  set NON_SECURE 
+  # java command is the actual transfer
+  java -Dcpdelim=${DD} $APP ${DD}client ${DD}id $ID $NON_SECURE ${DD}key $KEYSTORE ${DD}pass $KEYPASS ${DD}trust $TRUSTSTORE \
+    ${DD}host $RELAY_HOST ${DD}port $RELAY_PORT ${DD}auth ${DD}band $BANDWIDTH \
+    ${DD}fwd $DEPLOY_TMP/${date_to_count}.filecount ${DD}rhost $ARCHIVE_HOST ${DD}rport $ARCHIVE_PORT  ${DD}dest archive/incoming/lt/${date_to_count}.filecount >>&! /occ/tmp/xfer_nonsec.log
+  # This veriable just got set while the transfer was running. unset it again now.
+  unset NON_SECURE 
+  rm $DEPLOY_TMP/${date_to_count}.filecount
+end
+
+# RJS changed to be raw data only. Original version copied reduced too.
+# Tweaked to include Ringo data (JMM 20060303)
+set cf = `ls -1 ${ARCHIVE_RATCAM_DIR}/c_*_20??????_*_0.fits ${ARCHIVE_SUPIRCAM_DIR}/s_*_20??????_*_0.fits ${ARCHIVE_RINGO_DIR}/o_*_20??????_*_0.fits |& grep -v "No match" | wc -l`
+set sz = `ls -l ${ARCHIVE_RATCAM_DIR}/c_*_20??????_*_0.fits ${ARCHIVE_SUPIRCAM_DIR}/s_*_20??????_*_0.fits ${ARCHIVE_RINGO_DIR}/o_*_20??????_*_0.fits |& grep -v "No match" | awk '{count += $5} END { print (count/1000000)}'`
+
+# We must bail out now if no files or else the foreach will "crash" the script. 
+echo "There are $cf files to transfer with total size: $sz MBytes" >>& $LOGFILE
+if ( $cf == 0 ) goto cleanup
+
+# Files transferred
+set ct = 0
+# MBytes transferred
+set tt = 0
+# Files skipped
+set sk = 0
+# Failed to transfer
+set ff = 0
+
+#We want a sleep on the first time through the foreach loop. This
+#gives the system time to close any half written files before the
+#file transfer starts. It is only required on the first loop.
+set first_run = 1
+
+# RJS 2004-12-10 Changed to transfer only raw data. No reduced.
+# JMM 2006-03-03 Changed to do something or other.
+foreach file (${ARCHIVE_RATCAM_DIR}/c_?_20??????_*_0.fits ${ARCHIVE_SUPIRCAM_DIR}/s_*_20??????_*_0.fits ${ARCHIVE_RINGO_DIR}/o_*_20??????_*_0.fits )
+
+
+    if ($first_run == 1) then
+      echo "Sleeping on first loop." >>& $LOGFILE
+      sleep 10
+      set first_run = 0
+    endif
+
+    # Though we do not transfer reduced data, we use the existence of the reduced file to imply that the
+    # exposure is complete and safe to transfer. Therefore I have to synthesize the reduced filename for
+    # checking against.
+    set root = `echo $file | cut -d"_" -f1-6`
+    set pfile = ${root}_1.fits
+
+    set fs = `ls -s --block-size=1000000 $file | cut -d" " -f1 | awk '{print int($1)}'` 
+
+    set toonew = 0
+
+    set nowtime = `date -u "+%Y-%m-%d %H:%M:%S"`
+    
+    if (${?test}) then
+
+	echo "$nowtime Found: $file $fs MBytes" 
+
+    else
+	echo "$nowtime Ready to Transfer: $file " >>& $LOGFILE
+
+# This script will run once per hour and only transfer things that are either older than one hour
+# or there is a reduced _1 file on disk. If anyone
+# takes a single exposure of > 1 hour, it will get corrupted by the transfer, though the original
+# file will be available in the site backups
+        set now = `date +%s`
+        set filetime = `date -r $file +%s`
+        @ diff = $now - $filetime
+        if (($diff < 3600) && (! -e $pfile)) then
+        #if (($diff < 360) && (! -e $pfile)) then
+          @ toonew++
+        endif
+
+	if ($toonew == 0) then
+ 
+	  set find = `cat $INFO | grep $file `
+	
+	  if ($status == 0) then
+
+	    echo "Already transferred $file - skip"  >>& $LOGFILE
+	    @ sk++
+
+	  else
+
+	    cp $file $DEPLOY_TMP/
+	    if ($status != 0) then
+		echo "Failed to copy from instrument: $status"
+	    endif
+	    set cfile = $DEPLOY_TMP/${file:t}
+
+	    gzip -f $cfile
+	    if ($status != 0) then
+                echo "Failed to zippify: $status"
+            endif
+
+	    set sfile = ${cfile}.gz
+
+	    set dfile = archive/incoming/lt/${sfile:t}
+
+	    echo "Will Send copy: $sfile   to  $dfile "  >>& $LOGFILE
+
+	    set NON_SECURE 
+# @secure
+
+	    java -Dcpdelim=${DD} $APP ${DD}client ${DD}id $ID $NON_SECURE ${DD}key $KEYSTORE ${DD}pass $KEYPASS ${DD}trust $TRUSTSTORE \
+	     ${DD}host $RELAY_HOST ${DD}port $RELAY_PORT ${DD}auth ${DD}band $BANDWIDTH \
+	     ${DD}fwd $sfile ${DD}rhost $ARCHIVE_HOST ${DD}rport $ARCHIVE_PORT  ${DD}dest $dfile >>&! /occ/tmp/xfer_nonsec.log
+	   
+	    set ex = $status
+
+	    echo "Exit status was: $ex" >>& $LOGFILE
+    
+	    if ($ex == 0) then
+	      echo "Transferred: $sfile $fs MBytes as: $dfile" >>& $LOGFILE
+	      echo $file >>& $INFO
+	      @ ct++
+	      @ tt += $fs
+
+	      /bin/rm -f $sfile
+
+	      echo "Removed $sfile " >>& $LOGFILE
+
+	    else
+	      echo "Transfer $file failed with status: $ex " >>& $LOGFILE
+	      @ ff++
+	    endif
+
+	  endif # End of  if ($status == 0)
+	
+	else
+
+	  echo "File $file is < 1 hour old. Not transferring" >>& $LOGFILE
+	  @ sk++
+
+        endif	# End of  if (toonew == 0)
+
+   endif
+end
+
+if (! ${?test}) then
+    echo "" >>& $LOGFILE
+    echo "Run statistics" >>& $LOGFILE
+    echo "Total files: $cf " >>& $LOGFILE
+    echo "Files tranferred this run: $ct " >>& $LOGFILE
+    echo "Files skipped: $sk " >>& $LOGFILE
+    echo "Total transfer $tt Mbytes" >>& $LOGFILE
+    echo "Failed transfers: $ff ">>& $LOGFILE
+endif
+
+echo "Transfer run completed successfully" >>& $LOGFILE
+
+cleanup:
+if (-e $lock) then
+    /bin/rm -f $lock
+    if ($status == 0) then
+	echo "Removed lockfile" >>& $LOGFILE
+    else
+	echo "** Warning: Unable to remove lockfile: $lock "
+    endif
+else
+    echo "** Warning: Lockfile $lock was not found "
+endif

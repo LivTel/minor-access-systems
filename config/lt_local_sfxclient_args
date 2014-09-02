@@ -1,0 +1,16 @@
+
+# --------------------------------------------------------------
+# Setup for: SSL File Xfer Client (SFX_Client): LT->TMC->ARCHIVE
+# --------------------------------------------------------------
+
+set ID			= "ARCHIVE_XFER [LT_OCC -> Local TOFS]"
+
+set KEYSTORE		= $SFX_CERTS/pca.private
+set TRUSTSTORE		= $SFX_CERTS/itr.public
+set KEYPASS		= geronimo
+
+unset RELAY
+set RELAY_HOST		= localhost
+set RELAY_PORT		= 7166
+
+set AUTH		= @auth

@@ -1,0 +1,37 @@
+#!/bin/csh
+
+if (${#argv}  < 1) then
+    echo "Usage ocrclient <xml-request-file>"
+    exit 2
+endif
+
+if (! -e $1) then
+    echo "no such file $1 "
+    exit 3
+endif
+
+setenv CLASSPATH  /space/home/dev/bin/planetarium/java
+
+set LIB = /space/home/dev/bin/javalib
+
+setenv CLASSPATH ${CLASSPATH}:${LIB}/dev_lt.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_phase2.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_phase2_nonpersist.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_astrometry.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_util.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_util_logging.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_net.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_message_base.jar
+setenv CLASSPATH ${CLASSPATH}:${LIB}/ngat_message_oss.jar
+
+set XD = /space/home/snf/xml/XML4J-3_1_1
+
+#setenv CLASSPATH ${CLASSPATH}:${XD}/xml4j.jar
+setenv CLASSPATH ${CLASSPATH}:${XD}/xerces.jar
+setenv CLASSPATH ${CLASSPATH}:${XD}/xercesSamples.jar
+
+#echo "Classpath is: $CLASSPATH "
+
+java OfflineClient @host localhost @port 5577 @xml-file $1 
+
+

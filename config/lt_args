@@ -1,0 +1,12 @@
+#!/bin/csh
+
+#
+# ------------------------
+# DTMS Proxy arglist.(LT).
+# ------------------------
+#
+
+set NAME  = LT_PROXY
+set ID    = 555
+set PORT  = 7910
+set STORE = ${PROXY_HOME}/lt_store

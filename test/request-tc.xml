@@ -1,0 +1,22 @@
+<p2ml>
+   <request>
+      <action> add-tele-config </action>
+     
+         <param name = "proposal-id">
+	    <value> /FTN_Phase2_001/FTN_OPS/test-user1/SN-Test1 </value>
+         </param>
+	 
+	 <param name = "telescope-config">
+	    <value>         
+	       <tele-config tc-id = "Foff+15-RotMnt90-agopt"
+	                         rotmode = "MOUNT"
+				 autoguide = "OPTIONAL"
+				 angle-offset = "90.0"
+				 focus-offset = "15.0">				 
+		  <description> A simple config </description>
+	       </tele-config>
+            </value>
+         </param>
+   </request>
+</p2ml>
+

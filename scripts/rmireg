@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# -----------------------------------------------
+# Init launcher for: RMI.
+# -----------------------------------------------
+
+. /opt/ngat/etc/bashrc
+
+# Source function library.
+/etc/rc.d/init.d/functions
+
+DAT=`date -u +"%j_%H_%M"`
+
+case "$1" in
+  start)
+	echo "Starting RMIREG"
+	$DEPLOY_BIN/rmi start  1> $DEPLOY_TMP/rmilog 2>&1 &
+	;;
+  stop)
+	echo "Shutting down RMIREG"
+	$DEPLOY_BIN/rmi stop  1> $DEPLOY_TMP/rmilog 2>&1 
+	;;
+  restart)
+	$0 stop	
+	echo "Restarting in 30 secs"
+	sleep 30
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start | stop | restart}"
+	exit 1
+esac
+
+exit 0

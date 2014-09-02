@@ -1,0 +1,41 @@
+#!/bin/csh
+
+#
+# Script to start a POS GraphClient.
+#
+
+if (${#argv} < 1) then
+    echo "Usage: posgraph <clientid> etc"
+    echo "          clientId : Name of the client (its keyfile will be '.../clientId.private' )"
+    exit 1
+endif
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/pcr_setup
+
+cd $POS_HOME
+
+set KEYSTORE   = "-Djavax.net.ssl.keyStore=certs/"${1}".private"
+set KEYPASS    = "-Djavax.net.ssl.keyStorePassword="${1}"pw"
+set TRUSTSTORE = "-Djavax.net.ssl.trustStore=certs/rti_servers.public"
+
+set DEBUG = 
+#set DEBUG = -Djavax.net.debug=all
+
+set EGD = -Djava.security.egd=file:/dev/urandom
+
+set HOST = ftnproxy
+set PORT = 7940
+set DELAY = 10000
+
+set COMMAND = TELSTATUS
+set PARAM = AZIMUTH_ACTUAL
+set TITLE = "Azimuth Position"
+set UNITS = degs
+set LO = 180.0
+set HI = 360.0
+
+java -version
+
+$JAVA  $DEBUG $EGD $KEYSTORE $KEYPASS $TRUSTSTORE POSGraphClient -host $HOST -port $PORT -interval $DELAY -command $COMMAND -param $PARAM -title $TITLE -units $UNITS -lo $LO -hi $HI 

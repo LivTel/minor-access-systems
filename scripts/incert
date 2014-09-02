@@ -1,0 +1,17 @@
+#!/bin/csh
+
+#
+# Import cert from file to public store
+#
+# Usage: incert <name> <keystore> <alias> <pass> <tmp-file>
+
+set NAME     = "$1"
+set KEYSTORE = "$3"
+set ALIAS    = "$2"
+set PASS     = "$4"
+set FILE     = "$5"
+
+echo "Importing client public key for $NAME "
+
+keytool -v -import -noprompt -alias $ALIAS -keystore ${DIR}/$KEYSTORE -file $FILE -storepass $PASS
+

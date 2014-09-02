@@ -1,0 +1,38 @@
+#!/bin/csh
+
+set HOST = faulkes1.xra.le.ac.uk
+set PORT = 6666
+set ID = ARI_SSL_PUT
+
+printf "%bPlease enter the file you want to grab from $HOST : "
+set get = "$<"
+
+
+printf "%b What will it be called here : "
+set local = "$<"
+
+set KEYSTORE     = "test/itr.private"
+set TRUSTSTORE   = "test/server.public"
+
+if (! -e $KEYSTORE) then
+    echo "Could not find Keystore: $2KEYSTORE"
+    exit 2
+endif
+
+set KEYPASS = geronimo
+
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 3
+endif
+
+source setup
+
+echo "Grabbing file.. $get from $HOST as $local "
+
+set DEL = @
+
+set APP = ngat.net.SSLFileTransfer
+java  -Dcpdelim=${DEL} $APP ${DEL}client ${DEL}id $ID ${DEL}key $KEYSTORE ${DEL}kpass $KEYPASS ${DEL}trust $TRUSTSTORE ${DEL}host $HOST ${DEL}port $PORT ${DEL}get $get ${DEL}local $local 
+
+

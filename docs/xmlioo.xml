@@ -1,0 +1,48 @@
+<p2ml version = "2.0">
+
+<!-- add a group to proposal NSO_Priority_5 -->
+
+ <add-group proposal = "NSO_Priority_5">
+
+    <group name = "iootest" urgent = "false">
+
+       <constraints>
+	  <solar-elev> NIGHT </solar-elev>
+	  <lunar-elev> DARK </lunar-elev>
+	  <airmass> 2.0 </airmass>
+       </constraints>
+   
+       <timing class = "monitor">
+         <period unit = "hour"> 3.0 </period>
+	 <window unit = "hour"> 1.5 </window>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <sequence>
+
+       <iterator name = "root">
+
+	     <slew>
+		<target> M87 </target>
+		<rotator mode = "cardinal" angle = "65.0" />			
+	     </slew>
+
+	     <inst name = "IO:O"/>
+
+             <beam-steer upper = "Clear" lower = "RedBlue"/>
+
+             <focus-control name = "IO:O"/>
+
+	     <configure config = "io-o-halpha6632"/>
+	     <expose type = "multrun" repeat = "6" time = "300" unit = "sec"/>
+
+	     </iterator>
+
+       </sequence>
+
+    </group>
+
+ </add-group>
+
+</p2ml>

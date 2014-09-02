@@ -1,0 +1,32 @@
+#!/bin/csh
+
+#
+# Script to start the POS_Relay.
+#
+
+set KEYSTORE     = "-Djavax.net.ssl.keyStore=test/con.private"
+set KEYPASS      = "-Djavax.net.ssl.keyStorePassword=geronimo" 
+set TRUSTSTORE   = "-Djavax.net.ssl.trustStore=test/rtoc.public"
+
+# Relative to current working dir.
+set CONFIG = pos.properties
+
+source setup
+
+set SHUTDOWN = 0
+set REBOOT   = 2
+set exit     = $REBOOT
+
+set DEBUG = 
+#set DEBUG = -Djavax.net.debug=all
+
+set JAVA = /usr/java1.3/bin/java
+
+while ($exit != $SHUTDOWN)
+    echo "Starting POS Relay"
+    $JAVA $DEBUG $KEYSTORE $KEYPASS $TRUSTSTORE POS_CommandRelay $CONFIG
+    set exit = $status
+    echo .. POS Process exited with status $exit
+end
+echo "Shutting down on remote command.."
+exit 0

@@ -1,0 +1,258 @@
+#!/bin/csh
+#
+# -----------------------------------------------------------------------------
+# Planetarium Control and Image transfer: SSL Certificate generator.
+# -----------------------------------------------------------------------------
+#
+# Edit the appropriate client DN(s). 
+#
+# For RTOC keys, The Organisation (O) field of the client DN is curently used 
+# by the PCA/PCR to determine the identity of the RTOC and must be agreed 
+# with the TMC.
+#
+# Otherwise, Edit the client (and server) DN fields as appropriate.
+#
+#-----------------------------------------------------------------------------
+#
+
+# We should be run from the ITR or POS directory:
+
+if (${#argv} < 1) then
+    echo "Usage: generate_keys2 <dir> "
+    echo "Where <dir> is the directory to place the keys into."
+    exit 1
+endif
+
+setenv DIR $1
+
+setenv PATH ${PATH}:.
+
+#--------------------------------------------------------------------------------
+# Generate client public/private key pair for RTOC clients.
+#--------------------------------------------------------------------------------
+
+gencert "UK RTOC" ukrtocprivate ukrtoc.private \
+	"CN=UCW, OU=RTOC, O=UKRTOC, L=Cardiff, S=Wales, C=UK"              ukrtocpw
+
+gencert "AUS RTOC" ausrtocprivate ausrtoc.private \
+	"CN=FT2, OU=RTOC, O=AUSRTOC, L=Siding Springs, S=NSW, C=Australia" ausrtocpw
+
+gencert "HAWAII RTOC" hawrtocprivate hawrtoc.private \
+	"CN=FT1, OU=RTOC, O=HAWRTOC, L=Haleakala, S=Maui, C=Hawaii"        hawrtocpw
+
+gencert "C1" client1private client1.private \
+	"CN=Dev 1, OU=RTOC, O=ARI-DEV1, L=Liverpool, S=Merseyside, C=UK"   client1pw
+
+gencert "C2" client2private client2.private \
+	"CN=Dev 2, OU=RTOC, O=ARI-DEV2, L=Liverpool, S=Merseyside, C=UK"   client2pw
+
+gencert "ESTAR_ARI" estar_ari_dnprivate estar_ari_dn.private \
+	"CN=ESTAR, OU=DN, O=ARI-DN, L=Liverpool, S=Merseyside, C=UK"   estar_ari_dnpw
+
+#--------------------------------------------------------------------------------
+# Generate client public/private key pair for WWWIS and Archive clients.
+#--------------------------------------------------------------------------------
+
+gencert "UK_WWWIS"  ukwwwisprivate       ukwwwis.private \
+	"CN=UCW, OU=RTOC, O=UK_WWWIS, L=Cardiff, S=Wales, C=UK"              ukwwwispw
+
+gencert "UH WWWIS"  hawaiwwwisprivate    hawaiiwwwis.private \
+	"CN=UOH, OU=RTOC, O=UH_WWWIS, L=Haleakala, S=Maui, C=Hawaii"         hawaiiwwwispw
+
+gencert "UH ARCH"   hawaiiarchiveprivate hawaiiarchive.private \
+	"CN=UOH, OU=RTOC, O=UH_WWWIS, L=Haleakala, S=Maui, C=Hawaii"         hawaiiarchivepw
+
+gencert "AUS WWWIS" auswwwisprivate      auswwwis.private \
+	"CN=AUS, OU=RTOC, O=AUS_WWWIS, L=Siding Springs, S=NSW, C=Australia" auswwwispw
+
+gencert "ARI WWWIS" ariwwwisprivate      ariwwwis.private \
+	"CN=ARI, OU=RTOC, O=ARI_WWWIS, L=Liverpool, S=merseyside, C=UK"      ariwwwispw
+
+gencert "ARI ARCH"  ariarchiveprivate    ariarchive.private \
+	"CN=ARI, OU=RTOC, O=ARI_WWWIS, L=Liverpool, S=merseyside, C=UK"      ariarchivepw
+
+
+#----------------------------------------------------
+# Generate PCA(scope) server public/private key pair.
+#----------------------------------------------------
+
+gencert "PCA FTN" pcaftnprivate pca_ftn.private \
+    "CN=FTN, OU=FTN_OCC, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" geronimo
+
+gencert "PCA FTS" pcaftsprivate pca_fts.private \
+    "CN=FTS, OU=FTS_OCC, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" geronimo
+
+gencert "PCA LT"  pcaltprivate  pca_lt.private \
+    "CN=LT, OU=LT_OCC, O=ARI, L=La Palma, S=Canaries, C=Spain" geronimo
+
+#---------------------------------------------
+# Generate ITR server public/private key pairs.
+#---------------------------------------------
+
+gencert "ITR FTN" itrftnprivate itr_ftn.private \
+    "CN=FTN, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" geronimo
+
+gencert "ITR FTS" itrftsprivate itr_fts.private \
+    "CN=FTS, OU=FTS_PROXY, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" geronimo
+
+gencert "ITR LT"  itrltprivate  itr_lt.private \
+    "CN=LT, OU=LT_PROXY, O=ARI, L=La Palma, S=Canaries, C=Spain" geronimo
+
+
+#----------------------------------------------------
+# Generate PCR server public/private key pairs.
+#-----------------------------------------------------
+
+gencert "PCR FTN" pcrftnprivate pcr_ftn.private \
+    "CN=FTN, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" geronimo
+
+gencert "PCR FTS" pcrftsprivate pcr_fts.private \
+    "CN=FTS, OU=FTS_PROXY, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" geronimo
+
+gencert "PCR LT"  pcrltprivate  pcr_lt.private \
+    "CN=LT, OU=LT_PROXY, O=ARI, L=La Palma, S=Canaries, C=Spain" geronimo
+
+#----------------------------------------------------
+# Generate OCR server public/private key pairs.
+#-----------------------------------------------------
+
+gencert "OCR FTN" ocrftnprivate ocr_ftn.private \
+    "CN=FTN, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" geronimo
+
+gencert "OCR FTS" ocrftsprivate ocr_fts.private \
+    "CN=FTS, OU=FTS_PROXY, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" geronimo
+
+gencert "OCR LT"  ocrltprivate  ocr_lt.private \
+    "CN=LT, OU=LT_PROXY, O=ARI, L=La Palma, S=Canaries, C=Spain" geronimo
+
+
+#----------------------------------------------------
+# Generate P2ADMIN server public/private key pairs.
+#-----------------------------------------------------
+
+gencert "P2G FTN" p2gftnprivate p2g_ftn.private \
+    "CN=FTN, OU=FTN_PROXY, O=Faulkes, L=Haleakala, S=Maui, C=Hawaii" geronimo
+
+gencert "P2G FTS" p2gftsprivate p2g_fts.private \
+    "CN=FTS, OU=FTS_PROXY, O=Faulkes, L=Siding Springs, S=NSW, C=Australia" geronimo
+
+gencert "P2G LT"  p2gltprivate  p2g_lt.private \
+    "CN=LT, OU=LT_PROXY, O=ARI, L=La Palma, S=Canaries, C=Spain" geronimo
+
+#---------------------------------------------------------------------
+# Export RTOC client public keys and import into RTOC public keystore.
+#---------------------------------------------------------------------
+echo "Generating RTOC public key files"
+
+excert "C1" client1private client1.private client1pw temp.key
+incert "RTOC PUBLIC" rtoc.public client1public public temp.key
+
+excert "C2" client2private client2.private client2pw temp.key
+incert "RTOC PUBLIC" rtoc.public client2public public temp.key
+
+excert "UKRTOC" ukrtocprivate ukrtoc.private ukrtocpw temp.key
+incert "RTOC PUBLIC" rtoc.public ukrtocpublic public temp.key
+
+excert "AUSRTOC" ausrtocprivate ausrtoc.private ausrtocpw temp.key
+incert "RTOC PUBLIC" rtoc.public ausrtocpublic public temp.key
+
+excert "HAWRTOC" hawrtocprivate hawrtoc.private hawrtocpw temp.key
+incert "RTOC PUBLIC" rtoc.public hawrtocpublic public temp.key
+
+excert "ESTAR ARI DN" estar_ari_dnprivate estar_ari_dn.private estar_ari_dnpw temp.key
+incert "RTOC PUBLIC" rtoc.public estar_ari_dnpublic public temp.key
+
+#-----------------------------------------------------------------------
+# Export WWWIS client public keys and import into WWWIS public keystore.
+#-----------------------------------------------------------------------
+echo "Generating WWWIS/Archive public key files"
+
+excert "UK WWWIS" ukwwwisprivate ukwwwis.private ukwwwispw temp.key
+incert "WWWIS PUBLIC" wwwis.public ukwwwispublic public  temp.key
+
+excert "AUS WWWIS" auswwwisprivate auswwwis.private auswwwispw temp.key
+incert "WWWIS PUBLIC" wwwis.public auswwwispublic public temp.key
+
+excert "HAW WWWIS" hawaiiwwwisprivate hawaiiwwwis.private hawaiiwwwispw temp.key
+incert "WWWIS PUBLIC" wwwis.public hawaiiwwwispublic public temp.key
+
+excert "HAW ARCHIVE" hawaiiarchiveprivate hawaiiarchive.private hawaiiarchivepw temp.key
+incert "WWWIS PUBLIC" wwwis.public hawaiiarchivepublic public temp.key
+
+excert "ARI WWWIS" ariwwwisprivate ariwwwis.private ariwwwispw temp.key
+incert "WWWIS PUBLIC" wwwis.public ariwwwispublic public temp.key
+
+excert "ARI ARCHIVE" ariarchiveprivate ariarchive.private ariarchivepw temp.key
+incert "WWWIS PUBLIC" wwwis.public ariarchivepublic public temp.key
+
+#------------------------------------------------------------------------------------------------
+# Export ITR public keys into ITR  public keystore. (Do this for each scope RTOC can see).
+#------------------------------------------------------------------------------------------------
+echo "Generating ITR public key files"
+
+excert "ITR FTN" itrftnprivate itr_ftn.private geronimo temp.key
+incert "ITR PUBLIC" itr.public itrftnpublic public temp.key
+
+excert "ITR FTS" itrftsprivate itr_fts.private geronimo temp.key
+incert "ITR PUBLIC" itr.public itrftspublic public temp.key
+
+excert "ITR LT"  itrltprivate itr_lt.private geronimo temp.key
+incert "ITR PUBLIC" itr.public itrltpublic public temp.key
+
+
+#------------------------------------------------------------------
+# Export PCA Server public key and import it into public keystore.
+#------------------------------------------------------------------
+echo "Generating PCA server public key files"
+
+excert "PCA FTN" pcaftnprivate pca_ftn.private geronimo temp.key
+incert "PCA PUBLIC" pca.public pcaftnpublic public temp.key
+
+excert "PCA FTS" pcaftsprivate pca_fts.private geronimo temp.key
+incert "PCA PUBLIC" pca.public pcaftspublic public temp.key
+
+excert "PCA LT" pcaltprivate pca_lt.private geronimo temp.key
+incert "PCA PUBLIC" pca.public pcaltpublic public temp.key
+
+#------------------------------------------------------------------
+# Export Relay public keys and import into public keystore.
+#------------------------------------------------------------------
+echo "Generating Relay public key files"
+echo "..Adding PCR certs"
+excert "PCR FTN"    pcrftnprivate pcr_ftn.private geronimo temp.key
+incert "RLY PUBLIC" relay.public pcrftnpublic public temp.key
+
+excert "PCR FTS"    pcrftsprivate pcr_fts.private geronimo temp.key
+incert "RLY PUBLIC" relay.public pcrftspublic public temp.key
+
+excert "PCR LT"     pcrltprivate pcr_lt.private geronimo temp.key
+incert "RLY PUBLIC" relay.public pcrltpublic public temp.key
+
+echo "..Adding OCR certs"
+excert "OCR FTN"    ocrftnprivate ocr_ftn.private geronimo temp.key
+incert "RLY PUBLIC" relay.public ocrftnpublic public temp.key
+
+excert "OCR FTS"    ocrftsprivate ocr_fts.private geronimo temp.key
+incert "RLY PUBLIC" relay.public ocrftspublic public temp.key
+
+excert "OCR LT"     ocrltprivate ocr_lt.private geronimo temp.key
+incert "RLY PUBLIC" relay.public ocrltpublic public temp.key
+
+echo "..Adding P2G certs"
+excert "P2G FTN"    p2gftnprivate p2g_ftn.private geronimo temp.key
+incert "RLY PUBLIC" relay.public p2gftnpublic public temp.key
+
+excert "P2G FTS"    p2gftsprivate p2g_fts.private geronimo temp.key
+incert "RLY PUBLIC" relay.public p2gftspublic public temp.key
+
+excert "P2G LT"     p2gltprivate p2g_lt.private geronimo temp.key
+incert "RLY PUBLIC" relay.public p2gltpublic public temp.key
+
+
+#excert 
+
+
+echo "** DONE **"
+
+
+

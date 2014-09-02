@@ -1,0 +1,96 @@
+#!/bin/csh
+
+# -----------------------------------------------------------------
+# Utility Script for: Log Archive Transfer Client: (LAX SCP Client).
+# -----------------------------------------------------------------
+
+# -----------------------------------------------------------------
+# Model Source Parameters.
+# -----------------------------------------------------------------
+# LOG_DIR      The log archive directory - source directory.
+# PATTERN      Glob pattern to search for.
+# ARCH_USER    User name on archive machine.
+# ARCH_HOST    Archive host IP.
+# ARCH_DIR     Where to send to on archive server.
+# -----------------------------------------------------------------
+
+if (${#argv} < 1) then
+    echo "Usage: lax_scp <model>"
+    exit 1
+endif
+
+source /opt/ngat/etc/cshrc
+
+source $DEPLOY_BIN/util_setup
+
+set model = $1
+set JOURNAL = $DEPLOY_TMP/lax_scp_${model}.xdb
+
+source $UTIL_CONFIG/lax_scp_${model}_args
+
+# e.g. lax_scp_rcs_args
+
+set DAT = `date -u +"%j"`
+set LAX_CONSOLE_LOG_FILE = ${DEPLOY_TMP}/lax_${model}.log
+
+$DEPLOY_ETC/log_roll $LAX_CONSOLE_LOG_FILE 20000 3
+
+set DAT = `date -u`
+echo "Log Archive Transfer: (${model}) starting at $DAT" >>& $LAX_CONSOLE_LOG_FILE
+
+if (! -e $JOURNAL) then
+    touch $JOURNAL
+    echo "Creating new journal file: $JOURNAL "  >>& $LAX_CONSOLE_LOG_FILE
+endif
+
+set list = `glob $LOG_DIR/$PATTERN `
+
+if ($status == 0) then
+    
+    set ct = 0
+    echo "Checking files for archiving..." >>& $LAX_CONSOLE_LOG_FILE
+
+    foreach file ( $list )
+
+	echo "Checking $file .." >>& $LAX_CONSOLE_LOG_FILE
+	sleep 2
+
+	# Has it already been xferred.
+	cat $JOURNAL | grep $file >>& $LAX_CONSOLE_LOG_FILE
+
+	if ($status == 0) then
+
+	    set atime = `cat $JOURNAL | grep $file | awk '{print $1}'`
+	    set stime = `cat $JOURNAL | grep $file | awk '{print $2}'`
+
+	    echo " Already sent $file at $atime, skip" >>& $LAX_CONSOLE_LOG_FILE
+
+	    # Loose it.
+	    /bin/rm -fv $file >>& $LAX_CONSOLE_LOG_FILE
+	
+
+	else
+
+	    echo "Transferring $file .. " >>& $LAX_CONSOLE_LOG_FILE
+	
+	    scp $file ${ARCH_USER}@${ARCH_HOST}:${ARCH_DIR}/
+
+	    if ($status == 0) then
+		echo "Transfer completed" >>& $LAX_CONSOLE_LOG_FILE
+		set dd = `date -u "+%s"`
+		set dt = `date -u "+%Y-%m-%dT%H:%M:%S"`
+		echo $dt $dd $file >> $JOURNAL		
+		@ ct++
+	    endif
+
+       endif
+
+    end
+
+    echo "Transferred $ct files to archive" >>& $LAX_CONSOLE_LOG_FILE
+ 
+else
+    echo "Log Archive Transfer: (${model}) There were no files to archive" >>& $LAX_CONSOLE_LOG_FILE
+   
+endif
+

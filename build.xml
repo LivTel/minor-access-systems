@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+
+
+<project name="Misc" default="compile" basedir=".">
+
+     <description>
+        "Misc Subsystems - Development">
+     </description>
+
+     <!-- Dependent entries -->
+     <tstamp>
+        <format property="tstamp_build" pattern="yyyyMMdd'-'HHmm" />
+        <format property="build_date" pattern="yyyy-MM-dd HH:mm"/>
+     </tstamp>
+
+     <property environment="env"/>
+   
+     <!-- Source Directories -->
+     <property name="project.dir"      value = "."/>
+     <property name="config.dir"       value = "${project.dir}/config"/>     
+     <property name="src.dir"          value = "${project.dir}/java"/>
+     <property name="script.dir"       value = "${project.dir}/scripts"/>
+    <property name="docs.dir"       value = "${project.dir}/docs"/>
+    <property name="test.dir"       value = "${project.dir}/test"/>
+
+ <!-- Build Directories -->
+  <property name = "build.dir" value = "${env.HOME}/build/misc"/>
+  <property name = "class.dir"  value = "${build.dir}/java"/>
+<property name = "dist.dir" value =  "${build.dir}/dist"/>
+
+  <property name= "javalib.dir" value="${env.LT_HOME}/bin/javalib" />
+  <property name= "javalib.3p.dir" value="${env.LT_HOME}/bin/javalib_third_party"/>
+  <property name= "javalib.3p.jibx.dir" value="${env.LT_HOME}/bin/javalib_third_party/jibx"/>
+  <property name = "estar.javalib.dir" value ="${env.LT_HOME}/bin/estar/javalib"/>
+
+
+   <property name = "jar"         value = "misc_systems.jar"/>
+
+     <!-- Prepare build directories -->
+     <target name = "prepare" description = "Prepare build directories">
+
+         <delete dir = "${build.class}"/>
+         <mkdir dir  = "${build.class}"/>
+     
+         <tstamp>
+           <format property="BUILD" pattern="yyyyMMdd_HHmm" locale="en"/>
+         </tstamp>
+         <echo message = "Build date: ${BUILD}"/>
+     </target>
+
+
+     <!-- Cleanup dross -->
+     <target name = "clean"
+      description = "Clean out dross">
+       <delete verbose = "true" >
+          <fileset dir="." includes="**/*~" defaultexcludes = "false"/>
+       </delete>
+     </target>
+
+   
+     <!-- Compile all sources -->
+     <target name = "compile">
+         <javac srcdir = "${src.dir}" 
+                destdir = "${class.dir}" 
+                debug = "on"
+                source = "1.5"
+                target = "1.5">
+	 
+            <classpath>
+               <pathelement path="${classpath}"/>
+                  <fileset dir="${javalib.dir}">
+                     <include name = "*.jar"/>
+                  </fileset>
+                <fileset dir="${javalib.3p.dir}">
+                     <include name = "**/*.jar"/>
+                </fileset>
+		<fileset dir="${estar.javalib.dir}">
+		  <include name = "*.jar"/> 
+		</fileset>
+
+            </classpath>
+	  
+	 </javac>
+     </target> 
+
+
+     <!-- Deploy to JAR -->
+     <target name = "jar"
+             depends = "compile"
+             description = "Create class JAR">
+   
+        <echo message = "Jarring"/>
+        <jar jarfile = "${javalib.dir}/${jar}" basedir = "${class.dir}" update = "true" />
+        <echo message="Created jar: ${jar} "/>
+
+     </target>
+
+
+     <!-- DEPLOY TO TARGET  -->
+     <target name = "deploy" depends = "jar" description = "Deployment">
+
+         <echo message = "Deployment for: ${ant.project.name}"/>
+
+         <delete dir = "${dist.dir}"/>
+         <mkdir dir  = "${dist.dir}"/>
+
+        <copy file="${javalib.dir}/${jar}" todir="${dist.dir}" verbose = "true"/>
+
+        <mkdir dir = "${dist.dir}/scripts"/>
+        <copy todir = "${dist.dir}/scripts">
+           <fileset dir = "${project.dir}/scripts" />
+        </copy>
+
+	 <mkdir dir = "${dist.dir}/config"/>
+        <copy todir = "${dist.dir}/config">
+           <fileset dir = "${project.dir}/config" />
+        </copy>
+
+	 <mkdir dir = "${dist.dir}/docs"/>
+        <copy todir = "${dist.dir}/docs">
+           <fileset dir = "${project.dir}/docs" />
+        </copy>
+
+	 <mkdir dir = "${dist.dir}/test"/>
+        <copy todir = "${dist.dir}/test">
+           <fileset dir = "${project.dir}/test" />
+        </copy>
+
+        <property name="deploy.tar"  value="misc_systems_${DSTAMP}.tar"/>
+        <tar tarfile="${dist.dir}/${deploy.tar}" basedir="${dist.dir}"/>
+  
+     </target>
+
+</project>

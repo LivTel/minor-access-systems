@@ -1,0 +1,95 @@
+<p2ml>
+   <request>
+      <action> add-source </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/TEST/snfraser/EphemTest </value>
+         </param>
+	 
+	 <param name = "source">
+	    <value>         
+               <source src-id = "TestAsteroid-BAD9">
+	          <src-common>
+		     <equinox> J2000.0 </equinox> 
+		     <epoch>   2000.0  </epoch>
+		     <frame>   FK5     </frame>
+		  </src-common>
+
+                  <ephemeris>
+                    <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+  <coordinate epoch = "2008-07-01T12:00:00">
+                       <coord-ra>12:22:33.43</coord-ra>
+                       <coord-dec>-22:33:33.444</coord-dec>
+                    </coordinate>
+                    <coordinate epoch = "2008-07-02T12:00:00">
+                       <coord-ra>12:21:23.43</coord-ra>
+                       <coord-dec>-22:33:44.555 </coord-dec>
+                    </coordinate>
+
+                  </ephemeris>
+
+	       </source>
+            </value>
+         </param>
+   </request>
+</p2ml>
+

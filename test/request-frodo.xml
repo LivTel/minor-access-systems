@@ -1,0 +1,30 @@
+<p2ml>
+   <request>
+      <action> add-inst-config </action>
+  
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/FTN_OPS/test-user1/NSO_Priority_2 </value>
+         </param>
+	 
+	 <param name = "instrument-config">
+	    <value>         
+               <inst-config ic-id = "FRODO_T_RED_HI" type = "FRODO">
+	          <inst-common>
+		     <description>RATCam CCD 2x2 binning, SDSS-U </description>
+		     <cal-before> TRUE </cal-before>
+		     <cal-after> FALSE </cal-after>
+		     <detector>
+		       <xbin> 2 </xbin>
+		       <ybin> 2 </ybin>
+		     </detector>
+		  </inst-common>
+		  <frodo-config>
+		     <resolution>high</resolution>
+		     <arm>red</arm>
+		  </frodo-config>
+	       </inst-config>
+            </value>
+         </param>
+   </request>
+</p2ml>
+

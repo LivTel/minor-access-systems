@@ -1,0 +1,31 @@
+<p2ml>
+   <request>
+      <action> add-inst-config </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/amn/NSO_Priority_1 </value>
+         </param>
+	 
+	 <param name = "instrument-config">
+	    <value>         
+               <inst-config ic-id = "SNF-001">
+	          <inst-common>
+		     <description>RATCam CCD 2x2 binning, SDSS-U </description>
+		     <cal-before> TRUE </cal-before>
+		     <cal-after> FALSE </cal-after>
+		     <detector>
+		       <xbin> 2 </xbin>
+		       <ybin> 2 </ybin>
+		     </detector>
+		  </inst-common>
+		  <ccd-config>
+		     <lower-filter> clear </lower-filter>
+		     <upper-filter> SDSS-U  </upper-filter>
+		  </ccd-config>
+	       </inst-config>
+            </value>
+         </param>
+
+   </request>
+</p2ml>
+

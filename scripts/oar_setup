@@ -1,0 +1,19 @@
+#!/bin/csh
+
+# -------------------------------------------
+# Environment for: Offline Admin Relay (OAR). 
+# -------------------------------------------
+
+set OAR_HOME   = ${DEPLOY_HOME}/misc
+set OAR_SCRIPT = ${OAR_HOME}/scripts
+set OAR_DOCS   = ${OAR_HOME}/docs
+set OAR_CLASS  = ${OAR_HOME}/class
+set OAR_CONFIG = ${OAR_HOME}/config
+set OAR_CERTS  = ${OAR_HOME}/certs
+
+# Add classes for OAR
+echo $CLASSPATH | grep ${OAR_CLASS} > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${OAR_CLASS}
+endif
+

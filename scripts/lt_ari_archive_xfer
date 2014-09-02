@@ -1,0 +1,238 @@
+#!/bin/csh
+
+# --------------------------------------
+# Archive transfer script.
+# --------------------------------------
+#
+# Usage: archive_xfer [ test | send ] [ MMDD  ]
+#
+# e.g.   archive_xfer send 0321  -- Send for March 21
+#
+# e.g.   archive_xfer test       -- Test for current night
+#
+# --------------------------------------
+#
+
+#source /home/occ/.cshrc
+
+#Temp line by RJS because rat-image is not getting mounted.
+mount | grep rat-image
+if ( $status ) mount /mnt/ratimage
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/archive_xfer_setup
+
+echo "SSL Archive Transfer Client Starting"
+
+set nargs = ${#argv}
+
+switch (${#argv})
+    case 1:
+    set mode = $1
+    set od   = `date -d yesterday "+%m%d"`   
+    breaksw
+    case 2:
+    set mode = $1
+    set od   = $2
+    breaksw
+    default:
+    echo "Usage: archive_xfer [ test | send ] [ MMDD  ]"
+    exit 1
+endsw
+
+set lock = /occ/tmp/xfer.lock
+
+if ( -e $lock ) then
+    xterm -hold -bg yellow -fg blue -title "XFER Lock Conflict" -e "cat /occ/tmp/xfer-locked.txt"
+    exit 1
+endif
+touch $lock
+if ($status != 0) then
+    echo "** Error: Unable to create lockfile: $lock "
+    exit 2
+endif
+
+onintr cleanup
+
+if ($mode == "test") then
+    set test
+endif
+
+set dd = `date -u "+%Y%m%d"`
+
+set LOGFILE = $DEPLOY_LOG/ari_archive_log_${dd}
+set INFO    = $DEPLOY_TMP/ari_archive_info
+
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+endif
+
+if (! -e $INFO) then
+    touch $INFO
+endif
+
+
+echo "Starting Archive Transfer at: $dd " 
+#>>& $LOGFILE
+
+cd $ARCHIVE_HOME
+
+# Where are the images (NFS mount).
+set ARCHIVE_IMAGE_DIR = /mnt/rat-image
+
+# Where are the extra files.
+set ARCHIVE_EXTRA_LIST = $DEPLOY_TMP/archive_extra
+
+# These should work.
+set KEYSTORE     = "certs/pca.private"
+set TRUSTSTORE   = "certs/itr.public"
+set KEYPASS      = geronimo
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE" >>& $LOGFILE
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE" >>& $LOGFILE
+    exit 2
+endif
+
+# Check the certificate validity dates.
+#$ARCHIVE_HOME/scripts/check_cert $KEYSTORE $KEYPASS >>& $LOGFILE
+#$ARCHIVE_HOME/scripts/check_cert $TRUSTSTORE public >>& $LOGFILE
+
+# Just an ID for this server - you can run several of these as required.
+set ID = " ARCHIVE_XFER [ LT_OCC -> LT_TMC -> TMC_ARCHIVE ]"
+
+# The Proxy relay.
+set RELAY_HOST = 192.168.2.32
+set RELAY_PORT = 6666
+
+# The archive.
+set ARCHIVE_HOST = 192.168.3.192
+set ARCHIVE_PORT = 6666
+
+set BANDWIDTH = 5
+
+set APP = ngat.net.SSLFileTransfer
+
+# Command line delimeter - use any symbol which wont appear in either a filename
+# or the ID etc.
+set DD = @
+
+# Check number of files to xfer.
+
+if (! -e ${ARCHIVE_IMAGE_DIR}) then
+    echo "Cannot locate archive image dir: ${ARCHIVE_IMAGE_DIR}" >>& $LOGFILE
+    exit 3
+endif
+
+set cf = `ls -1 ${ARCHIVE_IMAGE_DIR}/c_*_200?${od}*_[01].fits | wc -l`
+set sz = `ls -l ${ARCHIVE_IMAGE_DIR}/c_*_200?${od}*_[01].fits | awk '{count += $5} END { print (count/1000000)}'`
+
+#set sz = `ls -l ${ARCHIVE_IMAGE_DIR} | awk '{count += $5} END { print (count/1000000000)}'`
+
+
+echo "There are $cf files to transfer with total size: $sz MBytes"
+# >>& $LOGFILE
+
+# Files transferred
+set ct = 0
+# MBytes transferred
+set tt = 0
+# Files skipped
+set sk = 0
+# Failed to transfer
+set ff = 0
+
+#echo "GO"
+
+foreach file (${ARCHIVE_IMAGE_DIR}/c_*_200?${od}*_[01].fits)
+    
+    set fs = `ls -s --block-size=1000000 $file | cut -d" " -f1 | awk '{print int($1)}'` 
+    
+    if (${?test}) then
+
+	echo "Found: $file $fs MBytes" 
+
+    else
+	echo "Ready to Transfer: $file " 
+#>>& $LOGFILE
+ 
+	set find = `cat $INFO | grep $file `
+	
+	if ($status == 0) then
+
+	    echo "Already transferred $file - skip"  
+#>>& $LOGFILE
+	    @ sk++
+
+	else
+
+	    cp $file $DEPLOY_TMP/
+
+	    set cfile = $DEPLOY_TMP/${file:t}
+
+	    gzip -f $cfile
+
+	    set sfile = ${cfile}.gz
+
+	    set dfile = archive/incoming/lt/${sfile:t}
+
+	    echo "Will Send copy: $sfile   to  $dfile "
+
+	    java -Dcpdelim=${DD} $APP ${DD}client ${DD}id $ID ${DD}key $KEYSTORE ${DD}pass $KEYPASS ${DD}trust $TRUSTSTORE \
+	     ${DD}host $RELAY_HOST ${DD}port $RELAY_PORT ${DD}auth ${DD}band $BANDWIDTH \
+	     ${DD}fwd $sfile ${DD}rhost $ARCHIVE_HOST ${DD}rport $ARCHIVE_PORT  ${DD}dest $dfile 
+	   
+	    set ex = $status
+
+	    echo "Exit status was: $ex"
+    
+	    if ($ex == 0) then
+		echo "Transferred: $sfile $fs MBytes as: $dfile" 
+#>>& $LOGFILE
+		echo $file >>& $INFO
+		@ ct++
+		@ tt += $fs
+
+		/bin/rm -f $sfile
+
+		echo "Removed $sfile "
+
+	    else
+		echo "Transfer $file failed with status: $ex " >>& $LOGFILE
+		@ ff++
+	    endif
+	endif
+
+   endif
+end
+
+if (! ${?test}) then
+    echo "" >>& $LOGFILE
+    echo "Run statistics" >>& $LOGFILE
+    echo "Total files: $cf " >>& $LOGFILE
+    echo "Files tranferred this run: $ct " >>& $LOGFILE
+    echo "Files skipped: $sk " >>& $LOGFILE
+    echo "Total transfer $tt Mbytes" >>& $LOGFILE
+    echo "Failed transfers: $ff ">>& $LOGFILE
+endif
+
+echo "Transfer run completed successfully" >>& $LOGFILE
+
+cleanup:
+if (-e $lock) then
+    /bin/rm -f $lock
+    if ($status == 0) then
+	echo "Removed lockfile"
+    else
+	echo "** Warning: Unable to remove lockfile: $lock "
+    endif
+else
+    echo "** Warning: Lockfile $lock was not found "
+endif

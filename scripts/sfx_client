@@ -1,0 +1,97 @@
+#!/bin/csh
+
+
+# --------------------------------------------------------------
+# Utility Script for: Secure File Transfer Client (SFX_Client).  
+# --------------------------------------------------------------
+
+# --------------------------------------------------------------
+# Source Parameters.
+# --------------------------------------------------------------
+# ID            Identity for this client. 
+# KEYSTORE      SSL Keystore file.
+# TRUSTSTORE    SSL Truststore file.
+# KEYPASS       Keystore password.
+# RELAY         Set if this is a relayed connection.
+# RELAY_HOST    Relay server host address.
+# RELAY_PORT    Relay port.
+# ARCHIVE_HOST  Archive server host address.
+# ARCHIVE_PORT  Archive server port.
+# AUTH          Set to require client authentication.
+# --------------------------------------------------------------
+
+source /opt/ngat/etc/cshrc
+
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/util_setup
+
+# sfx_client <route> <file> <dest>
+
+if (${#argv} < 2) then
+    echo "Usage: sfx_client <route> <file> <dest>"
+    echo "       route: Route setup."
+
+    foreach route ($UTIL_CONFIG/*_sfxclient_args)
+	set rt  = ${route:t}
+	echo "             - $rt "
+    end
+    echo "       file:  File to xfer."
+    echo "       dest:  Relative destination path from server root."
+
+    exit 1
+endif
+
+set model = $1
+
+source $UTIL_CONFIG/${model}_sfxclient_args
+
+echo "SSLFileTransfer Client startup: $model "
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE" 
+    exit 1
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 2
+endif
+
+set APP = ngat.net.SSLFileTransfer
+
+set EGD = -Djava.security.egd=file:/dev/urandom
+#set EGD
+
+#set DEBUG = -Djavax.net.debug=all
+set DEBUG
+
+set SSL = TLS
+
+set file = $2
+set dest = $3
+
+echo "File: $file Send to: $dest "
+
+if (${?RELAY}) then
+    set TARGET = "@fwd $file @dest $dest"
+    set REMOTE = "@rhost $ARCHIVE_HOST @rport $ARCHIVE_PORT"
+else
+    set TARGET = "@put $file @remote $dest"
+    set REMOTE
+endif
+
+echo "Target: $TARGET "
+echo "Remote: $REMOTE "
+
+$JAVA -Dcpdelim=@ $DEBUG $EGD $APP @client @id $ID @secure \
+    $AUTH @key $KEYSTORE @pass $KEYPASS @trust $TRUSTSTORE  \
+    @host $RELAY_HOST @port $RELAY_PORT @band 3 $TARGET $REMOTE \
+    @log-level 3 @con-log-level 3
+    
+set ex = $status
+
+echo "SFX Client exit with status $ex"
+
+exit $ex

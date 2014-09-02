@@ -1,0 +1,43 @@
+#!/bin/csh
+
+# ------------------------------------------------------------
+# Launcher for: Planetarium Control Relay Client (PCR_Client).  
+# ------------------------------------------------------------
+
+# Set these 2 variables to whatever they should be..
+set LIB = Directory where I put the common libraries i.e. the various ngat_xxx.jar
+set POS_LIB = Directory where I put the POS classes e.g. POS_CommandRelay.class
+
+# Add the pos classes to CLASSPATH
+setenv CLASSPATH $POS_LIB
+
+# Add the classes in the common libraries to CLASSPATH
+foreach file (${LIB}/*.jar)
+    setenv CLASSPATH ${CLASSPATH}:$file
+end
+
+# This is neccessary for some JSSE implementations on Linux, or it can be set
+# in the JAVA_HOME/jre/lib/security.properties or somewhere in that vicinity,
+# I always set it here. If you are not using Redhat I have no idea if this will
+# work or even be neccessary..
+
+set EGD = -Djava.security.egd=file:/dev/urandom
+
+# Uncomment whichever of the following to enable copious SSL debugging.
+# set DEBUG = "-Djavax.net.debug=all"
+# set DEBUG = "-Djavax.net.debug=ssl,handshake,data,trustmanager " etc,etc
+set DEBUG
+
+# Set these paths appropriately
+set KEYSTORE = "path to keystore file e.g. /xxx/ukrtoc.private "
+set TRUSTSTORE = "path to truststore file e.g. /xxx/rti_servers.public
+set KEYPASS = "whatever the password is"
+
+set KS = "-Djavax.net.ssl.keyStore=${KEYSTORE}"
+set KP = "-Djavax.net.ssl.keyStorePassword=${KEYPASS}"
+set TS = "-Djavax.net.ssl.trustStore=${TRUSTSTORE}"
+
+set HOST = ftnproxy
+set PORT = 8420
+
+java  $DEBUG $EGD $KS $KP $TS POSSocketClient $HOST $PORT secure

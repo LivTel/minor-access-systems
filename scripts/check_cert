@@ -1,0 +1,20 @@
+#!/bin/csh
+
+# ---------------------------------------
+# Check a certificate for remaining time.
+# ---------------------------------------
+
+set cert = $1
+set pass = $2
+
+echo "Checking Certificate validity: $cert "
+
+set st = `keytool -v -list -keystore $cert -storepass $pass | grep 'Valid' | cut -d":" -f5-`
+
+set rt  = `date -d "$st" -u "+%s"`
+set now = `date -u "+%s"`
+
+echo 
+echo $rt $now | awk '{if ($1 < $2) print "** WARNING Certificate has expired";else print "Certificate expires in: ", ($1-$2)/86400, " days" }'
+echo 
+

@@ -1,0 +1,89 @@
+<p2ml version = "2.0">
+
+<!-- add a group to proposal NSO_Priority_5 -->
+
+ <add-group proposal = "NSO_Priority_5">
+
+    <group name = "gr001" urgent = "false">
+
+       <constraints>
+	  <solar-elev> NIGHT </solar-elev>
+	  <lunar-elev> DARK </lunar-elev>
+	  <airmass> 2.0 </airmass>
+       </constraints>
+   
+       <timing class = "monitor">
+         <period unit = "hour"> 3.0 </period>
+	 <window unit = "hour"> 1.5 </window>
+	 <start> 2010-07-21T15:00:00 </start>
+	 <end> 2010-07-28T17:00:00 </end>
+       </timing>
+
+       <sequence>
+
+       <iterator name = "rootykins">
+
+	     <slew>
+		<target> M87 </target>
+		<rotator mode = "cardinal" angle = "65.0" />			
+	     </slew>
+
+	     <inst name = "RATCAM"/>
+
+	     <autoguide mode = "ON"/>
+
+	     <configure config = "ratcam-sdss-z-2"/>
+	     <expose type = "multrun" repeat = "6" time = "300" unit = "sec"/>
+
+	     <configure config = "ratcam-sdss-u-2"/>
+	     <expose type = "multrun" repeat = "6" time = "400" unit = "sec"/>
+
+	     <autoguide mode = "OFF"/>
+
+	     <offset ra-offset = "60" dec-offset = "-30" unit = "arcsec" mode = "absolute"/>
+
+	     <acquire use = "RATCAM" target = "FRODO" mode = "WCS_FIT"/>
+
+	     <autoguide mode = "ON"/>
+
+	     <branch name = "frodo-1">	      
+	     
+		<red>
+		   <iterator name = "red" type = "single">
+
+		      <configure config = "frodo-red-hi"/>
+		      <expose type = "multrun" repeat = "6" time = "300" unit = "sec"/>
+
+		      <configure config = "frodo-red-lo"/>
+		      <expose type = "multrun" repeat = "6" time = "100" unit = "sec"/>
+
+		   </iterator>
+		</red>
+
+		<blue>
+		   <iterator name = "blue" type = "single">		   
+
+		      <configure config = "frodo-blue-hi"/>
+		      <arc source = "W"/>
+		      <expose type = "multrun" repeat = "6" time = "300" unit = "sec"/>
+
+		      <configure config = "frodo-blue-lo"/>
+		      <expose type = "multrun" repeat = "6" time = "100" unit = "sec"/>
+		      <lamp source = "Xe"/>
+
+		   </iterator>
+		</blue>
+
+	     </branch>
+
+	     <autoguide mode = "OFF"/>
+
+	     </iterator>
+
+       </sequence>
+
+    </group>
+
+ </add-group>
+
+</p2ml>

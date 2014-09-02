@@ -1,0 +1,44 @@
+<p2ml>
+   <request>
+      <action> add-group </action>
+     
+         <param name = "proposal-id">
+            <value> /FTN_Phase2_001/FTN_OPS/test-user1/SN-Test1 </value>
+         </param>
+
+         <param name = "group">
+            <value>         
+               <group  type = "fixed" group-id = "FixedGroup-1" notify-when-done = "TRUE">
+
+                  <expiry-date> 2004-06-15T22:00 </expiry-date>
+
+                  <constraints lunar          = "BRIGHT"    
+                               seeing         = "POOR"
+                               twilight       = "OPTIONAL"
+                               meridian-limit = "15" />
+                 
+                  <fixed-time> 2004-08-19T18:43 </fixed-time>
+                 
+                  <observation obs-id = "Obs-1" 
+                               src-id = "Some_Star"
+                               ic-id  = "OCR-U-2" 
+                               tc-id   = "Foff+15-RotMnt90-agopt">
+
+                     <exposure expose-time = "60001" conditional = "TRUE" repeats = "4" />
+
+                     <mosaic pattern = "SINGLE" scale = "TRUE" >                       
+                     </mosaic>
+
+                     <offset>
+                        <offset-ra>  1.05  </offset-ra>
+                        <offset-dec> -0.32 </offset-dec>
+                     </offset>
+
+                  </observation>
+
+               </group>
+            </value>
+         </param>
+
+   </request>
+</p2ml>

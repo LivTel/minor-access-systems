@@ -1,0 +1,12 @@
+#!/bin/csh
+
+#
+# -------------------------
+# DTMS Proxy arglist.(FTN).
+# -------------------------
+#
+
+set NAME  = FTN_PROXY
+set ID    = 666
+set PORT  = 7930
+set STORE = ${PROXY_HOME}/ftn_store

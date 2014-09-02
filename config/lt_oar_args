@@ -1,0 +1,4 @@
+#!/bin/csh
+setenv KEYSTORE /occ/misc/certs/con.private
+setenv KEYPASS geronimo
+setenv TRUSTSTORE /occ/misc/certs/rtoc.public

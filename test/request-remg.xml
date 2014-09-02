@@ -1,0 +1,11 @@
+<p2ml>
+   <request>
+      <action> remove-group </action> 
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/XNSO/NSO_Priority_2 </value>
+	 </param>    
+         <param name = "group-id">
+            <value> rubbish3 </value>
+         </param>        
+   </request>
+</p2ml>

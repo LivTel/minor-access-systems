@@ -1,0 +1,45 @@
+<p2ml:document>
+ <request>
+  <action> add-group </action>
+  <params>
+   <param name = "proposal-id">
+     <value> LT_Phase2_001/NSO/XNSO/NSO_Priority_2 </value>
+   </param>
+
+   <param name = "group">
+    <value>
+     <group group-id = "rubbish3" notify-when-done = "FALSE" priority="2" moon = "false" >
+
+      <expiry-date> 2012-08-13T12:00:00 </expiry-date>
+       <constraints
+           lunar = "BRIGHT"
+           seeing = "POOR"
+           meridian-limit = "-1"
+           twilight = "OPTIONAL"
+          />
+
+      <observation obs-id="rubbish"
+                   src-id="dynmoonsec4g"
+                   ic-id="RATCam:G+R"
+                   tc-id="DEFAULT">
+       <exposure expose-time="19" conditional = "TRUE" repeats="1"/>
+       <mosaic pattern="SINGLE" scale="FALSE">
+        <ra-offset> 0.0 </ra-offset>
+        <dec-offset> 0.0 </dec-offset>
+        <ra-cells> 1 </ra-cells>
+        <dec-cells> 1 </dec-cells>
+       </mosaic>
+       <offset>
+        <offset-ra> 0 </offset-ra>
+        <offset-dec> 0 </offset-dec>
+       </offset>
+
+      </observation>
+
+
+     </group>
+    </value>
+   </param>
+  </params>
+ </request>
+</p2ml:document>

@@ -1,0 +1,24 @@
+#!/bin/csh
+#
+# arg 1 is the client id.
+# arg 2 is the client RTOC name.
+#
+
+if (${#argv} < 2) then
+    echo "Usage: makekey <clientname> <ID>"
+    echo "Builds a client keystore as 'clientname.private' with DN.O field set to ID"
+    echo "and exports to a file 'temp.key' e.g. makekey Somewhere ANYRTOC."
+    exit 1
+endif
+
+echo "Generating client public private key pair for ${1} whom is ID as ${2}"
+keytool -v -genkey -alias ${1}private -keystore certs/${1}.private -storetype JKS -keyalg rsa -dname "CN="${1}", OU=RTOC, O="${2}", L=Liverpool, S=Merseyside, C=UK" -storepass ${1}pw -keypass ${1}pw
+
+echo "Exporting to file"
+keytool -v -export -alias ${1}private -keystore certs/${1}.private -file temp.key -storepass ${1}pw
+
+echo "Import into server public store."
+
+keytool -v -export -alias ${1}private -keystore certs/${1}.private -file temp.key -storepass ${1}pw
+keytool -v -import -noprompt -alias ${1}public -keystore certs/rtoc.public -file temp.key -storepass public
+rm -f temp.key

@@ -1,0 +1,93 @@
+#!/bin/csh
+
+# ====================================================
+# Launcher script for Planetarium Control Relay (PCR).
+# ====================================================
+
+if (${#argv} < 1) then
+    echo "\033[45mUsage: pos ( start | stop ) <scope> \033[0m"
+    exit 1
+endif
+
+source ${DEPLOY_BIN}/setup
+source ${DEPLOY_BIN}/class_setup
+source ${DEPLOY_BIN}/pcr_setup
+
+# Add arg list.
+source $POS_CONFIG/${2}_pos_args 
+
+set DKEYSTORE     = "-Djavax.net.ssl.keyStore=${KEYSTORE}"
+set DKEYPASS      = "-Djavax.net.ssl.keyStorePassword=${KEYPASS}" 
+set DTRUSTSTORE   = "-Djavax.net.ssl.trustStore=${TRUSTSTORE}"
+
+set SHUTDOWN = 0
+set REBOOT   = 2
+set exit     = $REBOOT
+
+
+set PID = $DEPLOY_TMP/pcr_${2}.pid
+
+switch ($1)
+
+    case stop:
+
+	echo "Planetarium Control Relay stopping"
+	
+	if (! -e $PID) then
+	    echo "Cannot locate a PID file: $PID "
+	    exit 1
+	endif
+	set AID = `cat $PID` 
+    
+	if ($AID == "") then
+	    echo "$PID does not contain a valid PID for the IAS"
+	    exit 2
+	endif
+
+	set BID = `ps -ef | grep $AID | awk '{if ($3 == '$AID') print $2}'`
+	echo PCR Watchdog process is $AID ..Killing with SIG_KILL
+	kill -9 $AID  
+	echo PCR JVM Process is      $BID ..Killing with SIG_KILL
+	kill -9 $BID
+
+	breaksw
+
+    case start:
+
+	echo "Planetarium Control Relay starting"
+
+	echo $$ > $PID
+	
+	cd $POS_HOME
+
+	# Check certificate validity.
+	$POS_SCRIPTS/check_cert $KEYSTORE $KEYPASS
+	$POS_SCRIPTS/check_cert $TRUSTSTORE public
+
+	echo "Starting PCR watchdog (${2})"
+
+	set EGD = "-Djava.security.egd=file:/dev/urandom"
+	set DEBUG
+
+	set run = 0
+
+	set exit = $REBOOT
+
+	# Reboot currently does just a restart of the software
+	while ($exit == $REBOOT)
+	    @ run++
+	    echo "Starting Planetarium Conrol Relay $2 restart $run"
+	    java $DEBUG $EGD $DKEYSTORE $DKEYPASS $DTRUSTSTORE POS_CommandRelay $CONFIG
+	    set exit = $status
+	    echo .. PCR Process exited with status $exit
+	end
+	
+	echo "Shutting down on remote command.."
+
+	rm -f $PID
+
+	exit 0
+
+	breaksw
+
+endsw

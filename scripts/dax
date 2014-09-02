@@ -1,0 +1,66 @@
+#!/bin/csh
+
+# Extract params
+#source dax_xxx
+
+# TEMP FOR TEST
+
+set NAME   = DAX.`uname`
+set POLL   = 5000
+set SRC    = /home/dev/tmp
+set LOCK   = ".lock"
+set RHOST  = localhost
+set RPORT  = 6666
+set AHOST  = localhost 
+set APORT  = 6666
+set ACTION = "--relay"
+set KS     = /home/dev/bin/planetarium/java/itr.private
+set KP     = geronimo
+set TS     = /home/dev/bin/planetarium/java/server.public
+set BW     = 5000
+set FILTER = SimpleFITSHeaderFileTransferSelectionFilter
+set FCONF  = /home/snf/sfits.properties
+
+# EO TEMP
+
+#setenv DAX_HOME    ${DEPLOY_HOME}/misc
+#setenv DAX_CONFIG  ${DAX_HOME}/config
+#setenv DAX_CLASS   ${DAX_HOME}/class
+
+set a = `cat ~dev/lt_classpath/rcs_classes.txt`
+
+foreach file ($a)
+    echo  $CLASSPATH | grep $file  > /dev/null
+    if ($status != 0) then
+	setenv CLASSPATH ${CLASSPATH}:${file}
+    endif
+end
+
+
+set DAX_CLASS = /home/dev/bin/planetarium/java
+# Add classes for DAX
+echo $CLASSPATH | grep ${DAX_CLASS} > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${DAX_CLASS}
+endif
+
+# Add JFITS
+set JFITS = /home/dev/bin/javalib/jfits-0.92.jar 
+echo $CLASSPATH | grep ${JFITS} > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${JFITS}
+endif
+
+set EGD = "-Djava.security.egd=file:/dev/urandom"
+
+set APP = DataArchiveTransferClient
+
+java -DDAX $EGD $APP --name $NAME \
+	--polling $POLL \
+	--search-dir $SRC \
+	--lock-suffix $LOCK \
+	--relay-host $RHOST --relay-port $RPORT \
+	--archive-host $AHOST --archive-port $APORT \
+	--key-store $KS --key-pass $KP --trust-store $TS \
+	--bandwidth $BW \
+	--filter-class $FILTER --filter-config $FCONF

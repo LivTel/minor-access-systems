@@ -1,0 +1,31 @@
+<p2ml>
+   <request>
+      <action> add-inst-config </action>
+     
+         <param name = "proposal-id">
+            <value> /LT_Phase2_001/NSO/amn/NSO_Priority_1 </value>
+         </param>
+	 
+	 <param name = "instrument-config">
+	    <value>         
+               <inst-config ic-id = "MYOCR-B-1">
+	          <inst-common>
+		     <description>RATCam CCD 1x1 binning, Bess-B </description>
+		     <cal-before> TRUE </cal-before>
+		     <cal-after> FALSE </cal-after>
+		     <detector>
+		       <xbin> 2 </xbin>
+		       <ybin> 2 </ybin>
+		     </detector>
+		  </inst-common>
+		  <ccd-config>
+		     <lower-filter> Bessell-B </lower-filter>
+		     <upper-filter> clear  </upper-filter>
+		  </ccd-config>
+	       </inst-config>
+            </value>
+         </param>
+
+   </request>
+</p2ml>
+

@@ -1,0 +1,56 @@
+#!/bin/csh
+
+# ------------------------------------------------------------------------------
+# Template to use for generating roll-over log files at start of an application.
+#
+# Usage: log_roll <base-file> <max-size> <number>
+#         base-file: The file wjhich we use for rollover, appending .n to.
+#         max-size:  Size at which we want to roll-over (bytes).
+#         number:    Largest file .n to append.
+#
+# e.g. log_roll mylog 200000 3
+#
+# Will generate: mylog, mylog.1, mylog.2, mylog.3, whenever mylog exceeds 200000 bytes.
+# Current log will be mylog. mylog.3 is oldest and will be overwritten when the
+# current log passes the limit. 
+#
+# ------------------------------------------------------------------------------
+
+set narg = ${#argv}
+set dd   = `date -u "+%j"`
+
+if (${#argv} < 3) then
+    set num = 5
+    set max = 2000000
+    set log = "log_$dd"
+else
+    set log = $1
+    set max = $2
+    set num = $3
+endif
+
+touch $log
+set size = `ls --size --block-size=1 $log | awk '{print $1}'`
+
+#echo "Rolling Log: $log Size $size bytes "
+
+if ( $size > $max ) then  
+
+    set nn = $num
+    set mm = $num
+
+    while ($nn > 1)
+	@ mm = $nn - 1
+	if (-e ${log}.$mm) mv -v ${log}.$mm ${log}.$nn
+	@ nn--
+    end
+
+    if (-e ${log}) mv -v ${log} ${log}.1
+
+else 
+    #echo "Append to rolling log at: $dd " >>& $log
+endif
+
+touch $log
+
+#echo "Rolled $log ok"

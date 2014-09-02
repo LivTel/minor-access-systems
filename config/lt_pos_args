@@ -1,0 +1,14 @@
+#!/bin/csh
+
+# -----------------------------------------
+# Args list for POS Control Relay (LT).
+# -----------------------------------------
+
+set KEYSTORE     = certs/con.private
+set KEYPASS      = geronimo
+set TRUSTSTORE   = certs/rtoc.public
+
+set DEBUG = 
+#set DEBUG = -Djavax.net.debug=all
+
+set CONFIG = ${POS_CONFIG}/lt_pos.properties

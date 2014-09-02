@@ -1,0 +1,121 @@
+#!/bin/csh
+
+# --------------------------------------------------------------
+# Utility Script for: Log Archive Transfer Client: (LAX Client).
+# --------------------------------------------------------------
+
+# --------------------------------------------------------------
+# Model Source Parameters.
+# --------------------------------------------------------------
+# LAX_LOG_MAX   Log number of bytes to save per log file.
+# LAX_LOG_COUNT Number of log files to keep.
+# LOG_DIR       The log archive directory.
+# PATTERN       Glob pattern to search for.
+# JOURNAL       Transfer log journal.
+# DISPOSAL      Disposal option [ DELETE_NOW DELETE_LATER IGNORE ]
+# DELETE_AFTER  Period (secs) after which can be deleted.
+# ROUTE         File transfer routing model. (e.g. lt_tmc_archive)
+# DEST_DIR      Where to send to - relative to server's base dir.
+# --------------------------------------------------------------
+
+if (${#argv} < 1) then
+    echo "Usage: lax_client <model>"
+    exit 1
+endif
+
+source /opt/ngat/etc/cshrc
+
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/util_setup
+
+set model = $1
+
+set DAT = `date -u +"%j"`
+set LAX_CONSOLE_LOG_FILE = ${DEPLOY_TMP}/lax_${model}.log
+
+source $UTIL_CONFIG/${model}_lax_args
+
+$DEPLOY_ETC/log_roll $LAX_CONSOLE_LOG_FILE $LAX_LOG_MAX $LAX_LOG_COUNT
+
+# e.g. lt_tmc_archive
+
+set DAT = `date -u`
+echo "Log Archive Transfer: (${model}) starting at $DAT" >>& $LAX_CONSOLE_LOG_FILE
+
+if (! -e $JOURNAL) then
+    touch $JOURNAL
+    echo "Creating new journal file: $JOURNAL "  >>& $LAX_CONSOLE_LOG_FILE
+endif
+
+set list = `glob $LOG_DIR/$PATTERN `
+
+if ($status == 0) then
+    
+    set ct = 0
+    echo "Checking files for archiving..." >>& $LAX_CONSOLE_LOG_FILE
+
+    foreach file ( $list )
+
+	echo "Checking $file .." >>& $LAX_CONSOLE_LOG_FILE
+	sleep 2
+
+	# Has it already been xferred.
+	cat $JOURNAL | grep $file >>& $LAX_CONSOLE_LOG_FILE
+
+	if ($status == 0) then
+
+	    set atime = `cat $JOURNAL | grep $file | awk '{print $1}'`
+	    set stime = `cat $JOURNAL | grep $file | awk '{print $2}'`
+
+	    echo " Already sent $file at $atime, skip" >>& $LAX_CONSOLE_LOG_FILE
+
+	    # Can we get rid of it.
+
+	    switch ( $DISPOSAL ) 
+		case "DELETE_NOW":		   
+		    /bin/rm -fv $file >>& $LAX_CONSOLE_LOG_FILE
+		    breaksw
+		case "DELETE_LATER":
+
+		    set now   = `date -u "+%s"`
+		    set delta = `expr $now - $stime `
+
+		    if ( $delta > $DELETE_AFTER ) then
+			echo "Deleting after $delta secs" >>& $LAX_CONSOLE_LOG_FILE
+			/bin/rm -fv $file
+		    else
+			echo "Too soon $delta sec of $DELETE_AFTER to wipe this one" >>& $LAX_CONSOLE_LOG_FILE
+		    endif
+
+		    breaksw
+
+		default:
+		    echo "Unknown option: $DISPOSAL " >>& $LAX_CONSOLE_LOG_FILE
+		    breaksw
+	    endsw
+
+	else
+
+	    echo "Transferring $file .. " >>& $LAX_CONSOLE_LOG_FILE
+	    
+	    $DEPLOY_BIN/sfx_client $ROUTE $file $DEST_DIR/$file:t  >>& $LAX_CONSOLE_LOG_FILE
+
+	    if ($status == 0) then
+		echo "Transfer complete" >>& $LAX_CONSOLE_LOG_FILE
+		set dd = `date -u "+%s"`
+		set dt = `date -u "+%Y-%m-%dT%H:%M:%S"`
+		echo $dt $dd $file >> $JOURNAL		
+		@ ct++
+	    endif
+
+       endif
+
+    end
+
+    echo "Transferred $ct files to archive" >>& $LAX_CONSOLE_LOG_FILE
+ 
+else
+    echo "Log Archive Transfer: (${model}) There were no files to archive" >>& $LAX_CONSOLE_LOG_FILE
+   
+endif
+

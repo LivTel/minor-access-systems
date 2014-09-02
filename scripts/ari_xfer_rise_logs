@@ -1,0 +1,280 @@
+#!/bin/csh
+
+# THis is a modified version of ari_xfer_rise which sends teh log file instead of teh 
+# image data. I do not want this to run long term. It is only intended as a way of getting the log
+# files to Belfast during debugging. The should be transfered back the same way as everything 
+# else into the main Lt log repository.
+#
+# Since this script evolved from ari_xfer_rise, it contains a lot of junk which is not
+# strinctly needed (klike tyeh multi threading) but it does no harm and it is easier to
+# leave it all theer (since it is tested as working) rather than trying to strip it all out or 
+# write a whle new script. 
+#
+
+# --------------------------------------
+#
+# Usage: ari_xfer [verbose]
+#
+# e.g.   ari_xfer_rise               -- Send everything not already sent. Not output to STDOUT
+# e.g.   ari_xfer_rise verbose       -- Send everything not already sent. Comments to STDOUT
+#
+# --------------------------------------
+#
+
+# This would not be required if we were running as occ
+# DEPLOY_TMP is already in the environment
+set DEPLOY_TMP = /occ/tmp
+
+# Declare name of lock file.
+set lock = ${DEPLOY_TMP}/ari_xfer_rise_logs.lock
+
+# Define number of simultaneous transfers which are allowed.
+set THREAD_COUNT = 2
+set THREAD_LOCK=${DEPLOY_TMP}/xfer_rise_logs_thread_lock.
+
+# Set the date format which will be use in logs
+alias datestamp 'date +"%h %d %H:%M:%S"'
+set procname = ari_xfer_rise_logs
+
+# The archive.
+set ARCHIVE_USER = data
+set ARCHIVE_HOST = 150.204.240.8
+set ARCHIVE_PORT = 2222
+set ARCHIVE_PATH = /data/archive/webfiles/RiseLogs/
+
+# Logfile and name of file containing list of transfered files
+set LOGFILE = $DEPLOY_TMP/ari_xfer_rise_logs.log
+set INFO    = $DEPLOY_TMP/ari_archive_xfer_rise_logs_list
+
+# Where are the data (NFS mount).
+set ARCHIVE_RISE_DIR = /mnt/rise-image/log_archive
+
+set HOSTNAME = `printenv HOSTNAME`
+
+set DEBUG = 0 
+
+####################
+# Parse command line
+# This could be a lot more elegant!!!
+####################
+set nargs = ${#argv}
+if ( $nargs == 1 ) then
+  if ("$1" == "verbose") then
+    set DEBUG = 1
+  else 
+    echo "Usage: ari_xfer_rise_logs [verbose]"
+    exit 1
+  endif 
+endif
+
+if ( $nargs > 1 ) then
+  echo "Usage: ari_xfer_rise_logs [verbose]"
+  exit 1
+endif 
+
+echo `datestamp` $HOSTNAME ${procname}: "Start RISE_logs xfer script " >> $LOGFILE
+if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Start RISE_logs xfer script "
+
+
+###########
+# Lockfiles
+###########
+if ( -e $lock ) then
+    ps -elf | grep $procname | grep `cat $lock` > /dev/null
+    if($? == 0) then
+      if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "By running ps it looks like a RISE transfer is underway. Transfer aborted."
+      if ($DEBUG) xterm -hold -bg yellow -fg blue -title "XFER Lock Conflict" -e "cat /occ/tmp/xfer-locked.txt"
+      exit 1
+    else
+      if ($DEBUG) echo "By running ps it looks like this is an out of date lock file. It has been deleted and RISE transfer will proceed."
+      rm $lock
+    endif
+endif
+
+# Create lock file
+echo $$ > $lock
+chmod 777 $lock
+if ($status != 0) then
+    echo "** Error: Unable to create lockfile: $lock "
+    exit 2
+endif
+
+# Now that the script's master lock file is established we can safely delete any 
+# individual thread locks. They must be left over from another run.
+set counter=0
+while ($counter < $THREAD_COUNT)
+  if (-e ${THREAD_LOCK}$counter) rm -f ${THREAD_LOCK}$counter
+  @ counter++
+end
+
+# Now we have a lockfile created, we need to enfore cleanup at the end
+onintr cleanup
+
+##################
+# End of Lockfiles
+##################
+
+
+
+# General housekeeping on the log files
+if (! -e $LOGFILE) then
+    touch $LOGFILE
+endif
+if (! -e $INFO) then
+    touch $INFO
+endif
+# How many files in $INFO. This will be used at the end to deduce how many files were successfully transferred
+set info_length_pre = `wc -l $INFO | awk '{print $1}'`
+
+
+
+
+#
+# Check number of files to xfer.
+#
+if (! -e ${ARCHIVE_RISE_DIR}) then
+    echo `datestamp` $HOSTNAME ${procname}: "Cannot locate archive image dir: ${ARCHIVE_RISE_DIR}" >>& $LOGFILE
+    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Cannot locate archive image dir: ${ARCHIVE_RISE_DIR}"
+    exit 3
+endif
+# Count up all the files ready to send
+if ($DEBUG) echo "Building list of all files to consider again"
+set cf = `ls -1 ${ARCHIVE_RISE_DIR}/lt_rise*.tar.gz |& grep -v "No match" | wc -l`
+set sz = `ls -l ${ARCHIVE_RISE_DIR}/lt_rise*.tar.gz |& grep -v "No match" | awk '{count += $5} END { print (count/1000000)}'`
+# We must bail out now if no files or else the foreach will "crash" the script. 
+if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "There are $cf files to transfer with total size: $sz MBytes"
+echo `datestamp` $HOSTNAME ${procname}: "There are $cf files to transfer with total size: $sz MBytes" >>& $LOGFILE
+if ( $cf == 0 ) goto cleanup
+
+
+# File transfers attempted 
+set attempts = 0
+# Files skipped
+set sk = 0
+
+#We want a sleep on the first time through the foreach loop. This
+#gives the system time to close any half written files before the
+#file transfer starts. It is only required on the first loop.
+set first_run = 1
+
+# Start of master loop which progressively cycles through all available files.
+foreach file (${ARCHIVE_RISE_DIR}/lt_rise*.tar.gz)
+
+    if ($first_run == 1) then
+      if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Sleeping on first loop."
+      sleep 10
+      set first_run = 0
+    endif
+
+    set toonew = 0
+
+# This script will will only transfer things that are older than one hour
+        set now = `date +%s`
+        set filetime = `date -r $file +%s`
+        @ diff = $now - $filetime
+        if ($diff < 3600) then
+          @ toonew++
+        endif
+
+	if ($toonew == 0) then
+ 
+	  set find = `cat $INFO | grep $file `
+	
+	  if ($status == 0) then
+	    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Already transferred $file - skip"  
+	    echo `datestamp` $HOSTNAME ${procname}: "Already transferred $file - skip"  >>& $LOGFILE
+	    @ sk++
+	  else
+
+
+	    # At this point we have decided to send the file so copy it to the temp space
+
+	    cp $file $DEPLOY_TMP/.
+	    set erstat = $status
+	    if ($erstat != 0) then
+		echo "Failed to copy file $file from into DEPLOY_TMP : erstat = $erstat"
+		echo `datestamp` $HOSTNAME ${procname}: "Failed to copy $file from into DEPLOY_TMP : erstat = $erstat" >> $LOGFILE
+	    endif
+	    set sfile = ${DEPLOY_TMP}/${file:t}
+
+	    # This block is the loop which checks the availability of transfer threads, waits until one
+	    # is free and actually sends the file. The while() loop continuously cycles from from 0 -> $THREAD_COUNT
+	    # attempting to create a lockfile. If is succeeds, an scp rtansfer is initiated. If it fails it tries the next.
+	    #
+	    # If something went wrong, this could technically be an infinite loop. In order to prevent that, a final time out
+	    # could quite easily be implemented near the sleep command so that after a certain number of attempts we jump out
+	    set counter=0
+	    while ( $counter < $THREAD_COUNT)
+	      lockfile -0 -r 0 ${THREAD_LOCK}$counter >& /dev/null
+	      if ( $? == 0 ) then	# Lockfile was created, so start transfer
+		set this_thread = $counter
+		if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Start transfer of $sfile on thread $this_thread" 
+		echo `datestamp` $HOSTNAME ${procname}: "Start transfer of $sfile on thread $this_thread" >> $LOGFILE
+		@ attempts ++
+		# Following command does scp, some admin and deletes the lockfile. Whole thing is BG'd so that flow continues
+		# while the transfer is happening
+		(nice scp -P $ARCHIVE_PORT $sfile ${ARCHIVE_USER}@${ARCHIVE_HOST}:${ARCHIVE_PATH}. >>& $LOGFILE ; set ex = $status ; echo `datestamp` $HOSTNAME ${procname}: "Exit status ($sfile) was: $ex" >>& $LOGFILE ; if ($ex == 0) echo $file >>& $INFO; /bin/rm -f $sfile; if ($ex != 0) echo `datestamp` $HOSTNAME ${procname}: "Transfer $file failed with status: $ex " >>& $LOGFILE; rm ${THREAD_LOCK}$this_thread >>& $LOGFILE & ) > /dev/null
+		set counter = 99999	# Arbitrarily large number forces us to jump out of while() once a transfer has been initiated
+	      else
+	        @ counter++
+	        if ($counter == $THREAD_COUNT) then
+		  # If we have tried all threads, have a small sleep and then start again back at counter = 0
+		  set counter = 0
+		  sleep 1
+		  echo `datestamp` $HOSTNAME ${procname}: "All $THREAD_COUNT threads are busy. $file waiting." >> $LOGFILE
+	        endif
+	      endif
+	    end
+	    # End of the transfer while() loop.
+
+
+	  endif # End of  if ($status == 0) for test on whether this has already been sent
+	
+	else
+
+	  if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "File $file is < 1 hour old. Not transferring" 
+	  echo `datestamp` $HOSTNAME ${procname}: "File $file is < 1 hour old. Not transferring" >>& $LOGFILE
+	  @ sk++
+
+        endif	# End of  if (toonew == 0)
+
+   endif
+end
+
+
+#Ensure that all threads are complete before tidying up and writing out the stats
+# All this does is open and close every lockfile in order. That can only be done once all tr5ansfers have finished.
+set counter=0
+while ( $counter < $THREAD_COUNT)
+  lockfile ${THREAD_LOCK}$counter
+  rm -f ${THREAD_LOCK}$counter
+  @ counter++
+end
+
+set info_length_post = `wc -l $INFO | awk '{print $1}'`
+@ ct = $info_length_post - $info_length_pre
+@ ff = $attempts - $ct
+
+echo `datestamp` $HOSTNAME ${procname}: "Run statistics" >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Total files: $cf " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Files tranfers attempted this run: $attempts " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Files skipped: $sk " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Successful tranfers this run: $ct " >>& $LOGFILE
+echo `datestamp` $HOSTNAME ${procname}: "Failed transfers: $ff ">>& $LOGFILE
+#    echo "Total transfer $tt Mbytes" >>& $LOGFILE
+
+echo `datestamp` $HOSTNAME ${procname}: "Transfer run completed successfully" >>& $LOGFILE
+
+cleanup:
+if (-e $lock) then
+    /bin/rm -f $lock
+    if ($status == 0) then
+	if ($DEBUG) echo "Removed lockfile"
+    else
+	echo "** Warning: Unable to remove lockfile: $lock "
+	echo `datestamp` $HOSTNAME ${procname}: "** Warning: Unable to remove lockfile: $lock " >> $LOGFILE
+    endif
+else
+    echo "** Warning: Lockfile $lock was not found "
+    echo `datestamp` $HOSTNAME ${procname}: "** Warning: Lockfile $lock was not found " >> $LOGFILE
+endif

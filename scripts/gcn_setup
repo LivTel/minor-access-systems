@@ -1,0 +1,17 @@
+#!/bin/csh
+
+# ----------------
+# GCN Relay setup.
+# ----------------
+
+setenv GCN_HOME    ${DEPLOY_HOME}/gcn
+setenv GCN_CONFIG  ${GCN_HOME}/config
+setenv GCN_CLASS   ${GCN_HOME}/class
+
+# Add classes for GCN
+echo $CLASSPATH | grep ${GCN_CLASS} > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${GCN_CLASS}
+endif
+
+    

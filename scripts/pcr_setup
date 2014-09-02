@@ -1,0 +1,20 @@
+#!/bin/csh
+# 
+# --------------------------------------
+# Planetarium Control Relay (PCR) setup.  
+# --------------------------------------
+#
+
+setenv POS_HOME ${DEPLOY_HOME}/misc
+setenv POS_SCRIPTS ${POS_HOME}/scripts
+setenv POS_CERTS   ${POS_HOME}/certs
+setenv POS_DOCS    ${POS_HOME}/docs
+setenv POS_CLASS   ${POS_HOME}/class
+setenv POS_CONFIG  ${POS_HOME}/config
+
+# Add classes for POS
+echo $CLASSPATH | grep ${POS_CLASS} > /dev/null
+if ($status != 0) then
+    setenv CLASSPATH ${CLASSPATH}:${POS_CLASS}
+endif
+
