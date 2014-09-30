@@ -1,0 +1,30 @@
+#!/bin/csh
+
+# --------------------------------
+# Telemetry Client Startup script.
+# --------------------------------
+
+
+source /opt/ngat/etc/cshrc
+source $DEPLOY_BIN/class_setup
+
+cd /proxy/misc/
+
+setenv CLASSPATH ${CLASSPATH}:class
+
+set EGD   = "-Djava.security.egd=file:/dev/urandom"
+#set EGD
+
+#set DEBUG = "-Djavax.net.debug=all"
+set DEBUG
+
+echo $CLASSPATH
+set HOST = 192.168.1.30
+set PORT = 9110
+set KEY = "enclosure.shutter.1.position"
+
+# current - not part of any actual system
+$JAVA -DTELCLIENT $DEBUG $EGD TestClient $HOST $PORT $KEY
+
+# future call if kept in opsui tree but better somewhere else
+#$JAVA -DTELCLIENT $DEBUG $EGD ngat.rcsgui.stable.TestClient $HOST $PORT $KEY
