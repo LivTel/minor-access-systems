@@ -729,7 +729,7 @@ public class P2mlParser {
 			String instName = e.getAttributeValue("name");
 
 			return new XExecutiveComponent("aperture-" + instName, new XAcquisitionConfig(
-					IAcquisitionConfig.INSTRUMENT_CHANGE, instName, instName, false));
+					IAcquisitionConfig.INSTRUMENT_CHANGE, instName, instName, false, IAcquisitionConfig.PRECISION_NOT_SET));
 
 		} else if (e.getName().equals("focus-control")) {
 
@@ -826,7 +826,7 @@ public class P2mlParser {
 			else if (strMode.equalsIgnoreCase("brightest"))
 				mode = IAcquisitionConfig.BRIGHTEST;
 
-			return new XExecutiveComponent("acquire-" + use, new XAcquisitionConfig(mode, target, use, false));
+			return new XExecutiveComponent("acquire-" + use, new XAcquisitionConfig(mode, target, use, false, IAcquisitionConfig.PRECISION_NORMAL));
 
 		} else if (e.getName().equals("arc")) {
 

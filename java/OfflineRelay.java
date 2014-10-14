@@ -1355,7 +1355,8 @@ public class OfflineRelay extends Thread implements OcrProcessingMonitor {
 					// new instrument so switch agoff (if on), acquire IC, agon
 					// if needed
 					XAcquisitionConfig acq = new XAcquisitionConfig(IAcquisitionConfig.INSTRUMENT_CHANGE, instName,
-							"RATCAM", false);
+							"RATCAM", false, IAcquisitionConfig.PRECISION_NOT_SET) ;
+							
 					XExecutiveComponent acqsel = new XExecutiveComponent("Acquire", acq);
 					root.addElement(acqsel);
 					lastInstrument = instName;
