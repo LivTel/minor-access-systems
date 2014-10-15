@@ -17,7 +17,7 @@ if ($status != 0) then
 endif
 
 # Add classes for OCR
-echo $CLASSPATH | grep ${OCR_CLASS} > /dev/null
+echo $CLASSPATH | grep ${OCR_JAR} > /dev/null
 if ($status != 0) then
     setenv CLASSPATH ${OCR_JAR}:${CLASSPATH}
 endif
