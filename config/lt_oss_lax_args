@@ -5,6 +5,7 @@
 # --------------------------------------------------------------
 
 # Logging info.
+set LOG_ROLL		= TRUE
 set LAX_LOG_MAX 	= 30000
 set LAX_LOG_COUNT 	= 4
 

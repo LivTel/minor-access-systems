@@ -5,6 +5,7 @@
 # --------------------------------------------------------------
 
 # Logging info.
+set LOG_ROLL            = TRUE
 set LAX_LOG_MAX 	= 30000
 set LAX_LOG_COUNT 	= 4
 
@@ -27,4 +28,6 @@ set DISPOSAL		= DELETE_LATER
 set DELETE_AFTER	= 400
 
 # Where it goes.
-set DEST_DIR		= inst_logs/ringo3
+set DEST_USER		= eng
+set DEST_HOST		= sdbserver
+set DEST_DIR		= /sdb/LT/inst_logs/ringo3

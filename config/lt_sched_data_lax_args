@@ -5,12 +5,12 @@
 # --------------------------------------------------------------
 
 # Logging info.
+set LOG_ROLL            = TRUE
 set LAX_LOG_MAX 	= 30000
 set LAX_LOG_COUNT 	= 4
 
 # Search pattern.
 set PATTERN 		= "scorelog_*"
-
 
 # Transfer Journal DB
 set JOURNAL		= /occ/tmp/lax_lt.jdb
@@ -28,5 +28,7 @@ set DISPOSAL		= DELETE_LATER
 set DELETE_AFTER	= 400
 
 # Where it goes.
-set DEST_DIR		= sched_logs/data
+set DEST_USER		= eng
+set DEST_HOST		= sdbserver
+set DEST_DIR		= /sdb/LT/sched_logs/data
 

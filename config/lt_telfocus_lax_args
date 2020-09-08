@@ -1,0 +1,36 @@
+#!/bin/csh
+
+# --------------------------------------------------------------
+# Config for: Log Archive Transfer (LAX): LT_TELFOCUS
+# --------------------------------------------------------------
+
+# Logging info.
+set LOG_ROLL		= FALSE
+set LAX_LOG_MAX 	= 30000
+set LAX_LOG_COUNT 	= 4
+
+# Search pattern.
+set PATTERN 		= "calib_log.dat"
+
+# Transfer Journal DB
+#set JOURNAL		= /occ/tmp/lax_lt.jdb
+# /dev/null means no journal is kept and this file can keep being sent over and over again
+set JOURNAL		= /dev/null
+
+# Where the logs are.
+set LOG_DIR		= /occ/rcs/data/
+
+# What to do with it after xfer.
+set DISPOSAL		= IGNORE
+
+# How long after xfer to delete (sec).
+set DELETE_AFTER	= 400
+
+# Where it goes.
+set DEST_USER		= data
+set DEST_HOST		= lt-qc.astro.livjm.ac.uk
+set DEST_DIR		= /data/incoming
+
+
+
+

@@ -5,6 +5,7 @@
 # --------------------------------------------------------------
 
 # Logging info.
+set LOG_ROLL            = TRUE
 set LAX_LOG_MAX 	= 30000
 set LAX_LOG_COUNT 	= 4
 
@@ -24,4 +25,6 @@ set ROUTE		= lt_tmc_archive
 set DISPOSAL		= DELETE_NOW
 
 # Where it goes.
-set DEST_DIR		= data
+set DEST_USER		= eng
+set DEST_HOST		= sdbserver
+set DEST_DIR		= /sdb/LT/data
