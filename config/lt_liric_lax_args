@@ -1,7 +1,7 @@
 #!/bin/csh
 
 # --------------------------------------------------------------
-# Config for: Log Archive Transfer (LAX): LT_RAPTOR
+# Config for: Log Archive Transfer (LAX): LT_LIRIC
 # --------------------------------------------------------------
 
 # Logging info.
@@ -16,7 +16,7 @@ set PATTERN 		= "*.gz"
 set JOURNAL		= /occ/tmp/lax_lt.jdb
 
 # Where the logs are.
-set LOG_DIR		= /mnt/raptor-image/log_archive/
+set LOG_DIR		= /mnt/liric-image/log_archive/
 
 # Routing information
 set ROUTE		= lt_tmc_archive
@@ -30,4 +30,4 @@ set DELETE_AFTER	= 400
 # Where it goes.
 set DEST_USER		= eng
 set DEST_HOST		= sdbserver
-set DEST_DIR		= /sdb/LT/inst_logs/raptor
+set DEST_DIR		= /sdb/LT/inst_logs/liric
