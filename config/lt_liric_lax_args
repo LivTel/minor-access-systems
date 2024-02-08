@@ -16,7 +16,7 @@ set PATTERN 		= "*.gz"
 set JOURNAL		= /occ/tmp/lax_lt.jdb
 
 # Where the logs are.
-set LOG_DIR		= /mnt/liric-image/log_archive/
+set LOG_DIR		= /mnt/nas-data/liric-image/log_archive/
 
 # Routing information
 set ROUTE		= lt_tmc_archive
