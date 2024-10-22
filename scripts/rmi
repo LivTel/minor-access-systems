@@ -12,9 +12,8 @@ endif
 source /opt/ngat/etc/cshrc
 
 source ${DEPLOY_BIN}/class_setup
-source ${DEPLOY_BIN}/rmi_setup
-source ${DEPLOY_BIN}/osx_setup
 source ${DEPLOY_BIN}/rcx_setup
+source ${DEPLOY_BIN}/x_setup
 
 echo $CLASSPATH 
 
@@ -56,6 +55,7 @@ switch ($1)
 	set mexit = 0
 
 	$JAVA_HOME/bin/rmiregistry 
+#-J-Djava.rmi.server.logCalls=true
 
 	set mexit = $status
 	echo "RMI Process exited with status $mexit "
