@@ -4,7 +4,7 @@
 # Template to use for generating roll-over log files at start of an application.
 #
 # Usage: log_roll <base-file> <max-size> <number>
-#         base-file: The file wjhich we use for rollover, appending .n to.
+#         base-file: The file which we use for rollover, appending .n to.
 #         max-size:  Size at which we want to roll-over (bytes).
 #         number:    Largest file .n to append.
 #
