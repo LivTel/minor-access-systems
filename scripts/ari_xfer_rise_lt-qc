@@ -98,8 +98,8 @@ set LOGFILE = $DEPLOY_TMP/ari_xfer_rise.log
 set INFO    = $DEPLOY_TMP/ari_archive_xfer_rise_list
 if (! -e $LOGFILE) then
     touch $LOGFILE
-    chmod 666 $LOGFILE
 endif
+chmod 666 $LOGFILE
 
 
 # Where are the data (NFS mount).
@@ -144,7 +144,8 @@ umask 333
 set lockattempts = 0
 echo `datestamp` "$HOSTNAME $procname : Creating lock file" >> $LOGFILE
 if ($DEBUG) echo `datestamp` "$HOSTNAME $procname : Creating lock file" 
-nohup echo "$$ $procname" > $lock
+#nohup echo "$$ $procname" > $lock
+(nohup echo "$$ $procname" > $lock) >& /dev/null
 # First see if creating the lock worked
 if ($status != 0) then
     if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "Creation of lock file failed" | tee -a $LOGFILE
@@ -314,7 +315,7 @@ foreach file (`echo ${ARCHIVE_RISE_DIR}/q_*_20??????_*_0.fits* |& grep -v "No ma
         set filetime = `date -r $file +%s`
 	if ( "$filetime" == "" ) set filetime = $now		# Strictly an error if this ever happens. Maybe $file has been deleted by something else?
         @ diff = $now - $filetime
-        if (($diff < 600) && (! -e $pfile)) then
+        if (($diff < 300) && (! -e $pfile)) then
           @ toonew++
         endif
 
