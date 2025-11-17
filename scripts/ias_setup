@@ -1,0 +1,9 @@
+#!/bin/csh
+
+# -----------------------------------
+# Setup for: Archive Transfer Server.
+# -----------------------------------
+
+setenv ARCHIVE_HOME    $DEPLOY_HOME/archive
+setenv ARCHIVE_SCRIPTS ${ARCHIVE_HOME}/scripts
+setenv ARCHIVE_CERTS   ${ARCHIVE_HOME}/certs

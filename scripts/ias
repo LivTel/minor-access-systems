@@ -1,0 +1,108 @@
+#!/bin/csh
+
+# ------------------------------------------------------------
+# Launcher for: Image Archive-transfer Server. (IAS.
+# ------------------------------------------------------------
+#
+# Usage: ias ( start | quit ) <scope>
+#
+# ------------------------------------------------------------
+#
+
+if (${#argv} < 2) then
+    echo "Usage: ias ( start | stop ) <scope>"
+    exit 1
+endif
+
+source $DEPLOY_BIN/setup
+source $DEPLOY_BIN/class_setup
+source $DEPLOY_BIN/ias_setup
+
+# source the location args
+# source $IAS_CONFIG/$2_args
+
+# Select the directory where the images will be saved to:
+set BASE = /occ/tmp
+
+# Select the certificates: (these can be relative to: IAS_HOME).
+
+set KEYSTORE   = $IAS_CERTS/pca.private
+set TRUSTSTORE = $IAS_CERTS/rti_servers.public
+
+# Check we have the key store (server's private key).
+if (! -e $KEYSTORE) then   
+    echo "Could not find Keystore: $KEYSTORE"
+    exit 2
+endif
+
+# Check we have the trust store (clients' public keys).
+if (! -e $TRUSTSTORE) then
+    echo "Could not find Truststore: $TRUSTSTORE"
+    exit 3
+endif
+
+# This is the port for the server
+set PORT = 5555
+
+# Just an ID for logging.
+# e.g. set ID = FTN_ARCHIVE
+set ID = TEST_IAS
+    
+set APP = ngat.net.SSLFileTransfer
+
+# Entropy gathering device - leave this unless there is a very good reason to change it
+set EGD = -Djava.security.egd=file:/dev/urandom
+#set EGD
+
+# Only use debugging when something goes wrong with SSL handshake 
+# this produces pages of output
+#set DEBUG = -Djavax.net.debug=all
+set DEBUG
+
+set PID = $DEPLOY_TMP/ias_${2}.pid
+
+switch ($1)
+
+    case stop:
+
+	echo "SSL Image Archive Transfer Server stopping"
+	
+	if (! -e $PID) then
+	    echo "Cannot locate a PID file: $PID "
+	    exit 1
+	endif
+	set AID = `cat $PID` 
+    
+	if ($AID == "") then
+	    echo "$PID does not contain a valid PID for the IAS"
+	    exit 2
+	endif
+
+	set BID = `ps -ef | grep $AID | awk '{if ($3 == '$AID') print $2}'`
+	echo IAS Watchdog process is $AID ..Killing with SIG_KILL
+	kill -9 $AID  
+	echo IAS JVM Process is      $BID ..Killing with SIG_KILL
+	kill -9 $BID
+
+	breaksw
+
+    case start:
+
+	echo "SSL Image Archive Transfer Server starting"
+
+	echo $$ > $PID
+	
+	set exit = 0
+
+	$JAVA -DIAS -Dcpdelim=@ $DEBUG $EGD $APP @server @auth @id $ID @key $KEYSTORE @trust $TRUSTSTORE @port $PORT @band 3 @base $BASE
+	
+	set exit = $status 
+
+	echo IAS Process exited with status $exit
+
+	rm -f $PID
+
+	breaksw
+
+endsw
+
