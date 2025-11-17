@@ -70,10 +70,22 @@
 # CHECK GLS LTLOG BINARY EXISTS #
 # ----------------------------- #
 set LTLOG = /usr/local/bin/ltlog
-if ( -f $LTLOG ) then
-    set LTLOG_EXISTS = 1
+#if ( -f $LTLOG ) then
+#    set LTLOG_EXISTS = 1
+#else
+#    set LTLOG_EXISTS = 0
+#endif
+set LTLOG_EXISTS = 0
+
+
+
+# ----------------------------- #
+# CHECK if tac available to reverse the file 
+# ----------------------------- #
+if ($? == 0) then
+  set TAC = `which tac`
 else
-    set LTLOG_EXISTS = 0
+  set TAC = 0
 endif
 
 
@@ -94,7 +106,7 @@ set THREAD_LOCK=${DEPLOY_TMP}/xfer_thread_lock.
 # from each instrument. Any more after that will get picked up on the next run. This
 # way at least some frames will go over from long runs so the user can see the data
 # in quicklook, but it will not block other instruments.
-set MAX_FILES_PER_BATCH = 50
+set MAX_FILES_PER_BATCH = 100
 
 # Set the date format which will be use in logs
 alias datestamp 'date +"%h %d %H:%M:%S"'
@@ -121,11 +133,15 @@ endif
 
 set INFO    = $DEPLOY_TMP/ari_archive_xfer_list
 touch $INFO
+if ($?) then
+  echo `datestamp` $HOSTNAME ${procname}: "Failed to touch $INFO. Are the file permissions wrong?"
+  echo `datestamp` $HOSTNAME ${procname}: "Failed to touch $INFO. Are the file permissions wrong?" >> $LOGFILE
+endif
 
 # Where are the data (NFS mount).
 # These are the directories to be scanned for transfer data
 
-set LIST_OF_ARCHIVE_DIRS = "/mnt/sprat-image /mnt/o-image /mnt/frodo-image /mnt/ioi-image /mnt/moptop-image/3 /mnt/moptop-image/4 /mnt/liric-image"   
+set LIST_OF_ARCHIVE_DIRS = "/mnt/sprat-image /mnt/o-image /mnt/frodo-image /mnt/ioi-image /mnt/moptop-image/3 /mnt/moptop-image/4 /mnt/liric-image /mnt/loci-image"   
 #set LIST_OF_ARCHIVE_DIRS = "/mnt/sprat-image /mnt/o-image /mnt/frodo-image /mnt/ioi-image /mnt/moptop-image/3 /mnt/moptop-image/4"   
 # When adding a new instrument, the only other place you need to edit this script is towards the end at "DO WE USE LOCKFILES"
 
@@ -167,6 +183,7 @@ if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 1 -s XFER -sub_syst
 ###########
 # Lockfiles
 ###########
+if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Start lockfile admin" >> $LOGFILE
 set lockattempts = 1
 createlockfile:
 
@@ -193,19 +210,19 @@ if ($status != 0) then
         #if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -error -v 1 -s XFER -sub_system rise -source_file ari_xfer_rise -m XFER lockfile conflict, rise transfer aborted, exiting.
         if ($lockattempts >= 5) then
           echo `datestamp` $HOSTNAME ${procname}: "Made five attempts to get the lock file. Please investigate." | tee -a $LOGFILE
-          echo `datestamp` $HOSTNAME $procname : "Following are the conflicting processes." | tee -a $LOGFILE
+          echo `datestamp` $HOSTNAME ${procname}: "Following are the conflicting processes." | tee -a $LOGFILE
 	  ps -elf | grep $lock_procname | tee -a $LOGFILE
-          echo `datestamp` $HOSTNAME $procname : "This run started at $starttime " | tee -a $LOGFILE
+          echo `datestamp` $HOSTNAME ${procname}: "This run started at $starttime " | tee -a $LOGFILE
           exit 2
         else
           if ($DEBUG) echo `datestamp` $HOSTNAME $procname : "Sleeping one minute and will try again. (lockattempts = $lockattempts)" | tee -a $LOGFILE
           @ lockattempts++
 	  # Do not use exactly 60sec since the cron gets called every minute so I want to slightly spread the instances of re-tries
-          sleep 65
+          sleep 35
           goto createlockfile
         endif
       else
-        echo `datestamp` $HOSTNAME $procname : "By running ps it looks like this is an out of date $lock_procname lock file. It will be deleted and $procname will proceed." | tee -a $LOGFILE
+        echo `datestamp` $HOSTNAME ${procname}: "By running ps it looks like this is an out of date $lock_procname lock file. It will be deleted and $procname will proceed." | tee -a $LOGFILE
         rm -f $lock
         goto createlockfile
       endif
@@ -373,6 +390,15 @@ echo `datestamp` $HOSTNAME ${procname}: "End of admin checks. Before building ac
 # It could yield unanticipated results for complicated pattern matches
 setenv LC_ALL C
 
+
+# If tac is installed then reverse the $INFO file and search the reversed copy. It is fster because
+# the most recently added files are likely to be near the start instead of near the end
+set INFO_TO_SEARCH = ${INFO}
+if ( "$TAC" != 0 ) then
+  $TAC $INFO >! ${INFO}.reverse
+  set INFO_TO_SEARCH = ${INFO}.reverse
+endif
+
 # Build a list of all the files
 # Exclude any that have already been sent
 if (-e ${DEPLOY_TMP}/list_to_transfer) rm -f ${DEPLOY_TMP}/list_to_transfer
@@ -384,14 +410,29 @@ foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
   if ( ` ls ${dir_loop}/?_?_20??????_*_0.fits{,.gz} |& grep -c "No match"` ) continue 
   set count_for_this_instrument = 0
   if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Before foreach file in inst dir ${dir_loop} "  >>& $LOGFILE 
+  echo `datestamp` $HOSTNAME ${procname}: "Before foreach file in inst dir ${dir_loop} "  >>& $LOGFILE 
   foreach file (${dir_loop}/?_?_20??????_*_0.fits{,.gz}  )
 	  # Check the list of already transfered files
           # To speed this up I have tried both -m 1 and --mmap. 
 	  # I suspect -m 1 does not help because the first match is always going to be found near the end of the file.
 	  # --mmap seemed to make little difference in tests.
-	  grep $file $INFO >>& /dev/null
+	  #
+	  # Also tried reading entire file into a shell variable once and searching that. That was w-a-y slower in bash. Not tried other shells. 
+	  #
+	  # Also tried ram disk. I created a tmpfs and placed $INFO in there. It was a few percent faster, but probably not
+	  # enough to be worth the effort. I have not directly tried rmaafs.
+	  # The $INFO is only a couple of Mb. There is a good chance it is being cached in memory by the OS anyway and
+	  # using a ramdisk makes no difference?
+	  #
+	  # This grep is a problem. It takes 0.005sec to run, but when there are 10s of thousands of moptop files to look at,
+	  # it just takes too long.
+	  #
+	  # Ugly but about a factor two faster in some circumstances
+	  # if $TAC has been set then search a reversed copy of the list instead of the list itself.
+	  # That places the most recent files near the start instead of near the end of the file.
+	  grep -c -m 1 -l $file $INFO_TO_SEARCH >>& /dev/null
 	  if ($status == 0) then
-	    if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Already transferred $file - skip"  |& tee -a $LOGFILE
+	    #if ($DEBUG) echo `datestamp` $HOSTNAME ${procname}: "Already transferred $file - skip"  |& tee -a $LOGFILE
 	    #if ($LTLOG_EXISTS) $LTLOG -hostname ltproxy -p 2371 -info -v 2 -s XFER -sub_system normal -source_file ari_xfer -m Already transferred ${file} - skip
 	    @ sk++
 	  else
@@ -403,6 +444,7 @@ foreach dir_loop ($LIST_OF_ARCHIVE_DIRS)
             break
           endif
   end
+  echo `datestamp` $HOSTNAME ${procname}: "After foreach file in inst dir ${dir_loop} "  >>& $LOGFILE 
 end
 
 echo `datestamp` $HOSTNAME ${procname}: "After building actual file list which includes doing the 'already transfered' greps." >>& $LOGFILE
@@ -496,6 +538,11 @@ foreach file (`cat ${DEPLOY_TMP}/list_to_transfer`)
 	# 3,4 MOPTOP PCO cameras on same optics as the andor 1,2 cameras
 	set USE_ICS_LOCK = 0
 	set TRANSFER_AGE = 60
+	breaksw
+      case k:	
+	# k is for LOCI (loci)
+	set USE_ICS_LOCK = 0
+	set TRANSFER_AGE = 3600
 	breaksw
       default:
         echo `datestamp` $HOSTNAME ${procname}: Unknown instrument $inst_letter. Skip this file. >>& $LOGFILE
