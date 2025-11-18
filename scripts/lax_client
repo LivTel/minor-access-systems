@@ -1,61 +1,74 @@
-#!/bin/csh
+#!/bin/tcsh
 
 # --------------------------------------------------------------
-# Utility Script for: Log Archive Transfer Client: (LAX Client).
+# Utility Script for: Log Archive Transfer Client: (LAX CLient).
 # --------------------------------------------------------------
 
 # --------------------------------------------------------------
-# Model Source Parameters.
+# Source Parameters.
 # --------------------------------------------------------------
-# LAX_LOG_MAX   Log number of bytes to save per log file.
-# LAX_LOG_COUNT Number of log files to keep.
+# LOG_ROLL	"TRUE" to run log roller. "FALSE" to not run log roller.
+# LAX_LOG_MAX   Log number of bytes to save per log file. Ignore if LOG_ROLL==FALSE.
+# LAX_LOG_COUNT Number of log files to keep. Ignore if LOG_ROLL==FALSE.
 # LOG_DIR       The log archive directory.
 # PATTERN       Glob pattern to search for.
-# JOURNAL       Transfer log journal.
+# JOURNAL       Transfer log journal. Set to /dev/null for no journal
+#		Normally a file may only be transferred once and the journal logs what has gone
+#		By not havinf a journal (/dev/null) the same file can be sent repeatedly
 # DISPOSAL      Disposal option [ DELETE_NOW DELETE_LATER IGNORE ]
 # DELETE_AFTER  Period (secs) after which can be deleted.
-# ROUTE         File transfer routing model. (e.g. lt_tmc_archive)
-# DEST_DIR      Where to send to - relative to server's base dir.
+# DEST_USER	login name on destinstion computer.
+# DEST_HOST     Name of destination computer. 
+#               Requires ssh certificate so that ${DEST_HOST}@${DEST_HOST} will not require an interactive password
+# DEST_DIR      Where to send to - Fully qualified path on the destination machine or relative to ${DEST_USER}'s home
 # --------------------------------------------------------------
 
 if (${#argv} < 1) then
-    echo "Usage: lax_client <model>"
+    echo "Usage: lax_client <model> "
     exit 1
 endif
+#echo "Start Lax_client..."
 
 source /opt/ngat/etc/cshrc
-
 source $DEPLOY_BIN/class_setup
 source $DEPLOY_BIN/util_setup
 
 set model = $1
+#echo "Lax client for model $model "
 
 set DAT = `date -u +"%j"`
+#echo "ondate $DAT "
 set LAX_CONSOLE_LOG_FILE = ${DEPLOY_TMP}/lax_${model}.log
+#echo logs $LAX_CONSOLE_LOG_FILE
 
 source $UTIL_CONFIG/${model}_lax_args
 
-$DEPLOY_ETC/log_roll $LAX_CONSOLE_LOG_FILE $LAX_LOG_MAX $LAX_LOG_COUNT
+if ( "$LOG_ROLL" == "TRUE" ) then
+  $DEPLOY_ETC/log_roll $LAX_CONSOLE_LOG_FILE $LAX_LOG_MAX $LAX_LOG_COUNT >>& $LAX_CONSOLE_LOG_FILE
+  #echo "Logs rolled"
+endif
 
-# e.g. lt_tmc_archive
-
-set DAT = `date -u`
+#set DAT = `date -u`
 echo "Log Archive Transfer: (${model}) starting at $DAT" >>& $LAX_CONSOLE_LOG_FILE
+
+#echo  "checking journal"
 
 if (! -e $JOURNAL) then
     touch $JOURNAL
     echo "Creating new journal file: $JOURNAL "  >>& $LAX_CONSOLE_LOG_FILE
 endif
 
-set list = `glob $LOG_DIR/$PATTERN `
-
-if ($status == 0) then
+#echo "List constructed from the pattern ... $LOG_DIR/$PATTERN "
+set list = `echo $LOG_DIR/$PATTERN |& grep -iv "no match" `
+#set list = `glob $LOG_DIR/$PATTERN `
+#echo "List ... $list "
+if ( `echo $list | wc -w` ) then
     
     set ct = 0
     echo "Checking files for archiving..." >>& $LAX_CONSOLE_LOG_FILE
 
     foreach file ( $list )
-
+	#echo "Ready ... " `date`
 	echo "Checking $file .." >>& $LAX_CONSOLE_LOG_FILE
 	sleep 2
 
@@ -66,6 +79,8 @@ if ($status == 0) then
 
 	    set atime = `cat $JOURNAL | grep $file | awk '{print $1}'`
 	    set stime = `cat $JOURNAL | grep $file | awk '{print $2}'`
+	    if ("$atime" == "") echo "Variable atime has not been set from $JOURNAL $file"
+	    if ("$stime" == "") echo "Variable stime has not been set from $JOURNAL $file"
 
 	    echo " Already sent $file at $atime, skip" >>& $LAX_CONSOLE_LOG_FILE
 
@@ -82,11 +97,15 @@ if ($status == 0) then
 
 		    if ( $delta > $DELETE_AFTER ) then
 			echo "Deleting after $delta secs" >>& $LAX_CONSOLE_LOG_FILE
-			/bin/rm -fv $file
+			/bin/rm -fv $file >>& $LAX_CONSOLE_LOG_FILE
 		    else
 			echo "Too soon $delta sec of $DELETE_AFTER to wipe this one" >>& $LAX_CONSOLE_LOG_FILE
 		    endif
 
+		    breaksw
+
+		case "IGNORE":
+		    # Don't delete
 		    breaksw
 
 		default:
@@ -98,7 +117,8 @@ if ($status == 0) then
 
 	    echo "Transferring $file .. " >>& $LAX_CONSOLE_LOG_FILE
 	    
-	    $DEPLOY_BIN/sfx_client $ROUTE $file $DEST_DIR/$file:t  >>& $LAX_CONSOLE_LOG_FILE
+#	    $DEPLOY_BIN/sfx_client $ROUTE $file $DEST_DIR/$file:t  >>& $LAX_CONSOLE_LOG_FILE
+	    scp -C $file ${DEST_USER}@${DEST_HOST}:${DEST_DIR}/ >>& $LAX_CONSOLE_LOG_FILE 
 
 	    if ($status == 0) then
 		echo "Transfer complete" >>& $LAX_CONSOLE_LOG_FILE
